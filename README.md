@@ -1,23 +1,23 @@
 # Websocket Chatrooms
 
-This is a simple websocket chatroom website I built using Bun and Websockets. I made it during my time off from school to learn more about end to end encrytion and just as a way to entertain myself.
+This is a simple websocket chatroom website I built using Bun and websockets. I made it during my time off from school to learn more about end to end encrytion and just as a way to entertain myself.
 
 ## Features
 
 - **End-to-End Encryption**: Messages are encrypted before being sent and can only be decrypted by the recipients.
-- **Real-Time Communication**: Powered by Websockets for seamless messaging.
-- **Simple UI**: A (very) minimal and easy-to-use chat interface.
+- **Real-Time Communication**: Using websockets for real time messaging.
+- **Simple UI**: A (very) minimal and easy-to-use interface.
 
 ## Setup
 
 ### Prerequisites
 
-- Make sure you have bun installed of course.
+- Make sure you have [bun](https://bun.sh/) installed of course.
 
 ### Getting Started
 
 1. Clone the repository.
-2. Make the certs/ folder to place your openssl https certificates in.
+2. Make the certs/ folder to place your openssl https certificates in. (You can also modify the code slightly to make it basic HTTP)
 3. Run the following commands inside a terminal in the folder:
 ```bash
 bun install
@@ -25,7 +25,6 @@ bun install
 ```
 bun start
 ```
-4. Have fun or something.
 
 ## Contributions
 

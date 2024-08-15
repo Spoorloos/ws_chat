@@ -2,6 +2,9 @@
 
 This is a simple websocket chatroom website I built using Bun and websockets. I made it during my time off from school to learn more about end to end encrytion and just as a way to entertain myself.
 
+![Login Page](imgs/login_page.png)
+![Chat Page](imgs/chat_page.png)
+
 ## Features
 
 - **End-to-End Encryption**: Messages are encrypted before being sent and can only be decrypted by the recipients.

@@ -28,7 +28,7 @@ const handleOpen = function(ws) {
     }));
 }
 
-const handleClose = function() {
+const handleClose = function(ws) {
     const { username, room, uuid } = ws.data;
 
     ws.unsubscribe(room);
@@ -41,10 +41,8 @@ const handleClose = function() {
     console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} left room "${room}"`);
 }
 
-const handleMessage = function(data, messages) {
+const handleMessage = function({ username, room, uuid }, messages) {
     if (!messages) return;
-
-    const { username, room, uuid } = data;
 
     for (const [ targetUuid, message ] of Object.entries(messages)) {
         if (!targetUuid || !message || !message.content || !message.iv) {
@@ -63,10 +61,8 @@ const handleMessage = function(data, messages) {
     console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} sent a message in room "${room}"`);
 }
 
-const handleExchange = function(data, key) {
+const handleExchange = function({ room, uuid }, key) {
     if (!key) return;
-
-    const { room, uuid } = data;
 
     rooms.get(room).publicKeys.set(uuid, key);
     server.publish(room, JSON.stringify({

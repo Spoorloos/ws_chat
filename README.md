@@ -2,10 +2,9 @@
 
 This is a simple websocket chatroom website I built using Bun and websockets. I made it during my time off from school to learn more about end to end encrytion and just as a way to entertain myself.
 
-<div float="middle">
-  <img alt="Login Page" src="imgs/login_page.png" height="400">
-  <img alt="Chat Page" src="imgs/chat_page.png" height="400">
-</div>
+Login Page | Chat Page
+--- | ---
+![](imgs/login_page.png) | ![](imgs/chat_page.png)
 
 ## Features
 

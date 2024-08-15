@@ -3,81 +3,97 @@ import chalk from 'chalk';
 let sockets = new Map();
 let rooms = new Map();
 
+// Functions
+const handleOpen = function(ws) {
+    let { username, room, uuid } = ws.data;
+
+    ws.subscribe(room);
+    ws.data.uuid = uuid = crypto.randomUUID();
+    sockets.set(uuid, ws);
+
+    server.publish(room, JSON.stringify({
+        type: 'server',
+        content: `${username} has joined the room!`
+    }));
+
+    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} joined room "${room}"`);
+
+    if (!rooms.has(room)) {
+        rooms.set(room, { publicKeys: new Map() });
+    }
+
+    ws.send(JSON.stringify({
+        type: 'keyinit',
+        keys: Object.fromEntries(rooms.get(room).publicKeys)
+    }));
+}
+
+const handleClose = function() {
+    const { username, room, uuid } = ws.data;
+
+    ws.unsubscribe(room);
+    rooms.get(room).publicKeys.delete(uuid);
+    server.publish(room, JSON.stringify({
+        type: 'server',
+        content: `${username} has left the room!`
+    }));
+
+    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} left room "${room}"`);
+}
+
+const handleMessage = function(data, messages) {
+    if (!messages) return;
+
+    const { username, room, uuid } = data;
+
+    for (const [ targetUuid, message ] of Object.entries(messages)) {
+        if (!targetUuid || !message || !message.content || !message.iv) {
+            continue;
+        }
+
+        const socket = sockets.get(targetUuid);
+        if (socket) socket.send(JSON.stringify({
+            type: 'message',
+            sender: username,
+            uuid,
+            ...message
+        }));
+    }
+
+    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} sent a message in room "${room}"`);
+}
+
+const handleExchange = function(data, key) {
+    if (!key) return;
+
+    const { room, uuid } = data;
+
+    rooms.get(room).publicKeys.set(uuid, key);
+    server.publish(room, JSON.stringify({
+        type: 'exchange',
+        uuid,
+        key
+    }));
+}
+
+// Setup server
 const server = Bun.serve({
     port: 3000,
     cert: Bun.file('./certs/cert.pem'),
     key: Bun.file('./certs/key.pem'),
-    passphrase: 'niggaman',
+    passphrase: 'secretpasskey',
     websocket: {
-        open: (ws) => {
-            let { username, room, uuid } = ws.data;
-
-            ws.subscribe(room);
-            ws.data.uuid = uuid = crypto.randomUUID();
-            sockets.set(uuid, ws);
-
-            server.publish(room, JSON.stringify({
-                type: 'server',
-                content: `${username} has joined the room!`
-            }));
-
-            console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} joined room "${room}"`);
-
-            if (!rooms.has(room)) {
-                rooms.set(room, { publicKeys: new Map() });
-            }
-
-            ws.send(JSON.stringify({
-                type: 'keyinit',
-                keys: Object.fromEntries(rooms.get(room).publicKeys)
-            }));
-        },
-        close: (ws) => {
-            const { username, room, uuid } = ws.data;
-
-            ws.unsubscribe(room);
-            rooms.get(room).publicKeys.delete(uuid);
-            server.publish(room, JSON.stringify({
-                type: 'server',
-                content: `${username} has left the room!`
-            }));
-
-            console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} left room "${room}"`);
-        },
+        open: handleOpen,
+        close: handleClose,
         message: (ws, received) => {
-            const { username, room, uuid } = ws.data;
             const { type, ...data } = JSON.parse(received);
 
             switch (type) {
                 case 'message':
-                    if (!data.messages) return;
-
-                    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} sent a message in room "${room}"`);
-
-                    for (const [ targetUuid, message ] of Object.entries(data.messages)) {
-                        if (!targetUuid || !message || !message.content || !message.iv) {
-                            continue;
-                        }
-
-                        const socket = sockets.get(targetUuid);
-                        if (socket) socket.send(JSON.stringify({
-                            type: 'message',
-                            sender: username,
-                            uuid,
-                            ...message
-                        }));
-                    }
+                    handleMessage(ws.data, data.messages);
                     break;
                 case 'exchange':
-                    if (!data.key) return;
-
-                    rooms.get(room).publicKeys.set(uuid, data.key);
-                    server.publish(room, JSON.stringify({
-                        type,
-                        uuid,
-                        key: data.key
-                    }));
-
+                    handleExchange(ws.data, data.key);
                     break;
             }
         }

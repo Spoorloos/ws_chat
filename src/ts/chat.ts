@@ -12,6 +12,16 @@ interface KeyExchangeData {
     readonly [uuid: string]: string
 }
 
+interface MessageResponse {
+    type: string,
+    sender?: string,
+    uuid?: string,
+    content?: string,
+    iv?: string,
+    key?: string,
+    keys?: KeyExchangeData
+}
+
 // Variables
 const webSocket = new WebSocket(window.location.href);
 let publicKey: CryptoKey, privateKey: CryptoKey;
@@ -149,20 +159,20 @@ webSocket.addEventListener('open', async () => {
 });
 
 webSocket.addEventListener('message', (event) => {
-    const { type, ...data } = JSON.parse(event.data);
+    const { type, ...data }: MessageResponse = JSON.parse(event.data);
 
     switch (type) {
         case 'message':
-            createMessage(data.sender, data.uuid, data.content, data.iv);
+            createMessage(data.sender!, data.uuid!, data.content!, data.iv!);
             break;
         case 'server':
-            createAnnouncement(data.content);
+            createAnnouncement(data.content!);
             break;
         case 'exchange':
-            handleKeyExchange(data.uuid, data.key);
+            handleKeyExchange(data.uuid!, data.key!);
             break;
         case 'keyinit':
-            handleKeyInit(data.keys);
+            handleKeyInit(data.keys!);
             break;
     }
 });

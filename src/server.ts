@@ -3,32 +3,32 @@ import type { ServerWebSocket } from 'bun';
 
 // Types
 interface WsData {
-    uuid: string;
-    username: string;
-    room: string;
+    readonly uuid: string;
+    readonly username: string;
+    readonly room: string;
 }
 
 interface CustomWebSocket extends ServerWebSocket<unknown> {
-    data: WsData;
+    readonly data: WsData;
 }
 
 interface Room {
-    publicKeys: Map<string, string>
+    readonly publicKeys: Map<string, string>
 }
 
 interface Message {
-    content: string,
-    iv: string
+    readonly content: string,
+    readonly iv: string
 }
 
 interface Messages {
-    [targetUuid: string]: Message
+    readonly [targetUuid: string]: Message
 }
 
 interface MessageResponse {
-    type: string,
-    messages?: Messages,
-    key?: string
+    readonly type: string,
+    readonly messages?: Messages,
+    readonly key?: string
 }
 
 // Variables
@@ -36,36 +36,45 @@ let sockets: Map<string, CustomWebSocket> = new Map();
 let rooms: Map<string, Room> = new Map();
 
 // Functions
+const log = function(message: string) {
+    console.log(chalk.gray(new Date().toLocaleTimeString()), message);
+}
+
 const handleOpen = function(ws: CustomWebSocket) {
     let { username, room, uuid } = ws.data;
 
     ws.subscribe(room);
     sockets.set(uuid, ws);
 
+    if (!rooms.has(room)) {
+        rooms.set(room, { publicKeys: new Map() });
+    }
+
     server.publish(room, JSON.stringify({
         type: 'server',
         content: `${username} has joined the room!`
     }));
-
-    if (!rooms.has(room)) {
-        rooms.set(room, { publicKeys: new Map() });
-    }
 
     ws.send(JSON.stringify({
         type: 'keyinit',
         keys: Object.fromEntries(rooms.get(room)!.publicKeys)
     }));
 
-    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} joined room "${room}"`);
+    log(`${username} joined room "${room}"`);
 }
 
 const handleClose = function(ws: CustomWebSocket) {
     const { username, room, uuid } = ws.data;
 
     ws.unsubscribe(room);
+    sockets.delete(uuid);
 
     if (rooms.has(room)) {
-        rooms.get(room)!.publicKeys.delete(uuid);
+        const { publicKeys } = rooms.get(room)!;
+        publicKeys.delete(uuid);
+        if (publicKeys.size === 0) {
+            rooms.delete(room);
+        }
     }
 
     server.publish(room, JSON.stringify({
@@ -73,7 +82,7 @@ const handleClose = function(ws: CustomWebSocket) {
         content: `${username} has left the room!`
     }));
 
-    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} left room "${room}"`);
+    log(`${username} left room "${room}"`);
 }
 
 const handleMessage = function({ username, room, uuid }: WsData, messages: Messages) {
@@ -93,7 +102,7 @@ const handleMessage = function({ username, room, uuid }: WsData, messages: Messa
         }));
     }
 
-    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} sent a message in room "${room}"`);
+    log(`${username} sent a message in room "${room}"`);
 }
 
 const handleExchange = function({ room, uuid }: WsData, key: string) {

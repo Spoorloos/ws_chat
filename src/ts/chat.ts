@@ -13,13 +13,13 @@ interface KeyExchangeData {
 }
 
 interface MessageResponse {
-    type: string,
-    sender?: string,
-    uuid?: string,
-    content?: string,
-    iv?: string,
-    key?: string,
-    keys?: KeyExchangeData
+    readonly type: string,
+    readonly sender?: string,
+    readonly uuid?: string,
+    readonly content?: string,
+    readonly iv?: string,
+    readonly key?: string,
+    readonly keys?: KeyExchangeData
 }
 
 // Variables

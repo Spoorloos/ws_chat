@@ -122,9 +122,11 @@ const handleExchange = function({ room, uuid }: WsData, key: string) {
 // Setup server
 const server = Bun.serve({
     port: 3000,
+    // Comment these lines out if you don't want HTTPS:
     cert: Bun.file('./certs/cert.pem'),
     key: Bun.file('./certs/key.pem'),
     passphrase: '12345',
+    ///////////////////////////////////////////////////
     websocket: {
         open: handleOpen,
         close: handleClose,

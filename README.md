@@ -21,7 +21,7 @@ Login Page | Chat Page
 ### Getting Started
 
 1. Clone the repository.
-2. Make the certs/ folder to place your openssl https certificates in. (You can also modify the code slightly to make it basic HTTP)
+2. Place your OpenSSL certificates in the certs/ folder. (You can also modify the code slightly to make it HTTP instead)
 3. Run the following commands inside a terminal in the folder:
 ```bash
 bun install

@@ -1,14 +1,45 @@
 import chalk from 'chalk';
+import type { ServerWebSocket } from 'bun';
 
-let sockets = new Map();
-let rooms = new Map();
+// Types
+interface WsData {
+    uuid: string;
+    username: string;
+    room: string;
+}
+
+interface CustomWebSocket extends ServerWebSocket<unknown> {
+    data: WsData;
+}
+
+interface Room {
+    publicKeys: Map<string, string>
+}
+
+interface Message {
+    content: string,
+    iv: string
+}
+
+interface Messages {
+    [targetUuid: string]: Message
+}
+
+interface MessageResponse {
+    type: string,
+    messages?: Messages,
+    key?: string
+}
+
+// Variables
+let sockets: Map<string, CustomWebSocket> = new Map();
+let rooms: Map<string, Room> = new Map();
 
 // Functions
-const handleOpen = function(ws) {
+const handleOpen = function(ws: CustomWebSocket) {
     let { username, room, uuid } = ws.data;
 
     ws.subscribe(room);
-    ws.data.uuid = uuid = crypto.randomUUID();
     sockets.set(uuid, ws);
 
     server.publish(room, JSON.stringify({
@@ -16,23 +47,27 @@ const handleOpen = function(ws) {
         content: `${username} has joined the room!`
     }));
 
-    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} joined room "${room}"`);
-
     if (!rooms.has(room)) {
         rooms.set(room, { publicKeys: new Map() });
     }
 
     ws.send(JSON.stringify({
         type: 'keyinit',
-        keys: Object.fromEntries(rooms.get(room).publicKeys)
+        keys: Object.fromEntries(rooms.get(room)!.publicKeys)
     }));
+
+    console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} joined room "${room}"`);
 }
 
-const handleClose = function(ws) {
+const handleClose = function(ws: CustomWebSocket) {
     const { username, room, uuid } = ws.data;
 
     ws.unsubscribe(room);
-    rooms.get(room).publicKeys.delete(uuid);
+
+    if (rooms.has(room)) {
+        rooms.get(room)!.publicKeys.delete(uuid);
+    }
+
     server.publish(room, JSON.stringify({
         type: 'server',
         content: `${username} has left the room!`
@@ -41,7 +76,7 @@ const handleClose = function(ws) {
     console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} left room "${room}"`);
 }
 
-const handleMessage = function({ username, room, uuid }, messages) {
+const handleMessage = function({ username, room, uuid }: WsData, messages: Messages) {
     if (!messages) return;
 
     for (const [ targetUuid, message ] of Object.entries(messages)) {
@@ -61,10 +96,13 @@ const handleMessage = function({ username, room, uuid }, messages) {
     console.log(chalk.gray(new Date().toLocaleTimeString()), `${username} sent a message in room "${room}"`);
 }
 
-const handleExchange = function({ room, uuid }, key) {
+const handleExchange = function({ room, uuid }: WsData, key: string) {
     if (!key) return;
 
-    rooms.get(room).publicKeys.set(uuid, key);
+    if (rooms.has(room)) {
+        rooms.get(room)!.publicKeys.set(uuid, key);
+    }
+
     server.publish(room, JSON.stringify({
         type: 'exchange',
         uuid,
@@ -77,19 +115,19 @@ const server = Bun.serve({
     port: 3000,
     cert: Bun.file('./certs/cert.pem'),
     key: Bun.file('./certs/key.pem'),
-    passphrase: 'secretpasskey',
+    passphrase: '12345',
     websocket: {
         open: handleOpen,
         close: handleClose,
-        message: (ws, received) => {
-            const { type, ...data } = JSON.parse(received);
+        message: (ws: CustomWebSocket, received: string) => {
+            const { type, ...data }: MessageResponse = JSON.parse(received);
 
             switch (type) {
                 case 'message':
-                    handleMessage(ws.data, data.messages);
+                    handleMessage(ws.data, data.messages!);
                     break;
                 case 'exchange':
-                    handleExchange(ws.data, data.key);
+                    handleExchange(ws.data, data.key!);
                     break;
             }
         }
@@ -105,9 +143,10 @@ const server = Bun.serve({
         // Serve the chat page
         else if (pathname === '/chat') {
             // Validate the data
-            const data = {
+            const data: WsData = {
                 username: searchParams.get('username') || 'Anonymous',
-                room: searchParams.get('room') || '1'
+                room: searchParams.get('room') || '1',
+                uuid: crypto.randomUUID()
             }
 
             if (data.username.length > 20 || data.room.length > 50) {

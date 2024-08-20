@@ -1,12 +1,12 @@
 {
     "name": "wschat",
-    "module": "src/server.js",
+    "module": "./src/server.ts",
     "type": "module",
     "devDependencies": {
         "@types/bun": "latest"
     },
     "scripts": {
-        "start": "bun run ./src/server.js"
+        "start": "bun run ./src/server.ts"
     },
     "dependencies": {
         "chalk": "^5.3.0"

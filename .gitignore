@@ -174,5 +174,6 @@ dist
 # Finder (MacOS) folder config
 .DS_Store
 
-# HTTPS certificates
+# Stuff
 certs/
+src/compiled/

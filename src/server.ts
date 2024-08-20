@@ -22,7 +22,7 @@ interface Message {
 }
 
 interface Messages {
-    readonly [targetUuid: string]: Message
+    [targetUuid: string]: Message
 }
 
 interface MessageResponse {

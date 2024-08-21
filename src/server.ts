@@ -144,6 +144,7 @@ async function ifExists(filename: string) {
 // Setup server
 const server = Bun.serve({
     port: 3000,
+    
     // Comment these lines out if you don't want HTTPS:
     cert: await ifExists('./certs/cert.pem'),
     key: await ifExists('./certs/key.pem'),

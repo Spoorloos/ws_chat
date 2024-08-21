@@ -21,7 +21,7 @@ Login Page | Chat Page
 ### Getting Started
 
 1. Clone the repository.
-2. Place your OpenSSL certificates in the certs/ folder. (You can also [modify the code slightly](https://github.com/Spoorloos/ws_chat/blob/main/src/server.ts#L125) to make it HTTP instead)
+2. Place your OpenSSL certificates in the certs/ folder if you have any. (The website will not function properly over HTTP)
 3. Run the following commands inside a terminal in the folder:
 ```bash
 bun install

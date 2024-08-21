@@ -119,14 +119,17 @@ const handleExchange = function({ room, uuid }: WsData, key: string) {
     }));
 }
 
+const getFile = async function(path: string) {
+    const file = Bun.file(path);
+    return (await file.exists()) ? file : undefined;
+}
+
 // Setup server
 const server = Bun.serve({
     port: 3000,
-    // Comment these lines out if you don't want HTTPS:
-    cert: Bun.file('./certs/cert.pem'),
-    key: Bun.file('./certs/key.pem'),
+    cert: await getFile('./certs/cert.pem'),
+    key: await getFile('./certs/key.pem'),
     passphrase: '12345',
-    ///////////////////////////////////////////////////
     websocket: {
         open: handleOpen,
         close: handleClose,
@@ -178,8 +181,8 @@ const server = Bun.serve({
 
         // Serve any other files requested
         else {
-            const file = Bun.file('./src' + pathname);
-            return (await file.exists()) ?
+            const file = await getFile('./src' + pathname);
+            return file ?
                 new Response(file) :
                 new Response(null, { status: 404 });
         }

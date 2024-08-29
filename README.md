@@ -22,7 +22,8 @@ Login Page | Chat Page
 
 1. Clone the repository.
 2. Place your SSL certificates in the certs/ folder if you have any. (The website will not function properly over HTTP)
-3. Run the following commands inside a terminal in the folder:
+3. Change the passphrase and file names of your certificates in /src/.env if needed.
+4. Run the following commands inside a terminal in the folder:
 ```bash
 bun install
 ```

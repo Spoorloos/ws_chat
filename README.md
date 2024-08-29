@@ -21,8 +21,8 @@ Login Page | Chat Page
 ### Getting Started
 
 1. Clone the repository.
-2. Place your SSL certificates in the [certs/](https://github.com/Spoorloos/ws_chat/tree/main/certs) folder if you have any. (The website will not function properly over HTTP)
-3. Change the passphrase and file names of your certificates in [.env](https://github.com/Spoorloos/ws_chat/blob/main/.env) if needed.
+2. Place your SSL certificates in the [certs/](certs/) folder if you have any. (The website will not function properly over HTTP)
+3. Change the passphrase and file names of your certificates in [.env](.env) if needed.
 4. Run the following commands inside a terminal in the folder:
 ```bash
 bun install

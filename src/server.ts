@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { ErrorLike, Server } from 'bun';
+import type { ErrorLike } from 'bun';
 import type { WsData, CustomWebSocket, Room, Messages, MessageData } from './types';
 
 // Variables
@@ -123,7 +123,7 @@ async function getFile(path: string) {
 }
 
 function serveLoginRoute() {
-    return new Response(Bun.file('/src/client/login.html'));
+    return new Response(Bun.file('./src/client/login.html'));
 }
 
 function serveChatRoute(request: Request, searchParams: URLSearchParams) {
@@ -148,7 +148,7 @@ function serveChatRoute(request: Request, searchParams: URLSearchParams) {
         return new Response('Upgrade failed', { status: 500 });
     }
 
-    return new Response(Bun.file('/src/client/chat.html'));
+    return new Response(Bun.file('./src/client/chat.html'));
 }
 
 async function handleFetch(request: Request) {
@@ -160,16 +160,16 @@ async function handleFetch(request: Request) {
         case '/chat':
             return serveChatRoute(request, searchParams);
         default:
-            const file = await getFile('/src/client' + pathname);
+            const file = await getFile('./src/client' + pathname);
             return file ?
                 new Response(file) :
                 new Response(null, { status: 404 });
     }
 }
 
-function handleError(request: ErrorLike) {
-    log(chalk.redBright('The server encountered an error!'), `"${request.message}"`);
-    return new Response(`The server encountered an error! "${request.message}"`, { status: 500 });
+function handleError(error: ErrorLike) {
+    log(chalk.redBright('The server encountered an error!'), `"${error}"`);
+    return new Response(`The server encountered an error! "${error}"`, { status: 500 });
 }
 
 // Setup server
@@ -184,10 +184,10 @@ const server = Bun.serve({
         message: handleMessage
     },
     tls: {
-        cert: await getFile('/certs/cert.pem'),
-        key: await getFile('/certs/key.pem'),
+        cert: await getFile('./certs/cert.pem'),
+        key: await getFile('./certs/key.pem'),
         passphrase: '12345',
-    },
+    }
 });
 
 console.log(`Server started at ${chalk.blueBright(server.url)}`);

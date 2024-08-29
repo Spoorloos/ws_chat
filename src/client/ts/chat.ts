@@ -1,4 +1,4 @@
-import type { Message, Messages, MessageData, KeyExchangeData } from './types';
+import type { Message, Messages, MessageData, KeyExchangeData } from '../../types';
 
 // Variables
 const webSocket = new WebSocket(window.location.href);
@@ -131,7 +131,7 @@ function sendToServer(data: MessageData) {
 }
 
 // Events
-webSocket.addEventListener('open', async () => {
+webSocket.addEventListener('open', async function() {
     const keyPair = await generateKeyPair();
 
     ({ publicKey, privateKey } = keyPair);
@@ -142,7 +142,7 @@ webSocket.addEventListener('open', async () => {
     });
 });
 
-webSocket.addEventListener('message', (event) => {
+webSocket.addEventListener('message', function(event) {
     const { type, ...data }: MessageData = JSON.parse(event.data);
 
     switch (type) {
@@ -161,12 +161,12 @@ webSocket.addEventListener('message', (event) => {
     }
 });
 
-messageInput.addEventListener('input', () => {
+messageInput.addEventListener('input', function() {
     const length = messageInput.value.trim().length;
     sendBtn.disabled = (length === 0 || length > 250);
 });
 
-form.addEventListener('submit', async (event) => {
+form.addEventListener('submit', async function(event) {
     const messages: Messages = {};
     const message = messageInput.value.trim();
 

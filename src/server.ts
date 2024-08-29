@@ -123,7 +123,7 @@ async function getFile(path: string) {
 }
 
 function serveLoginRoute() {
-    return new Response(Bun.file('./src/client/login.html'));
+    return new Response(Bun.file('/src/client/login.html'));
 }
 
 function serveChatRoute(request: Request, searchParams: URLSearchParams) {
@@ -148,10 +148,10 @@ function serveChatRoute(request: Request, searchParams: URLSearchParams) {
         return new Response('Upgrade failed', { status: 500 });
     }
 
-    return new Response(Bun.file('./src/client/chat.html'));
+    return new Response(Bun.file('/src/client/chat.html'));
 }
 
-async function handleFetch(request: Request, server: Server) {
+async function handleFetch(request: Request) {
     const { pathname, searchParams } = new URL(request.url);
 
     switch (pathname) {
@@ -160,7 +160,7 @@ async function handleFetch(request: Request, server: Server) {
         case '/chat':
             return serveChatRoute(request, searchParams);
         default:
-            const file = await getFile('./src/client' + pathname);
+            const file = await getFile('/src/client' + pathname);
             return file ?
                 new Response(file) :
                 new Response(null, { status: 404 });
@@ -184,9 +184,9 @@ const server = Bun.serve({
         message: handleMessage
     },
     tls: {
-        cert: await getFile('./certs/cert.pem'),
-        key: await getFile('./certs/key.pem'),
-        passphrase: 'niggaman',
+        cert: await getFile('/certs/cert.pem'),
+        key: await getFile('/certs/key.pem'),
+        passphrase: '12345',
     },
 });
 

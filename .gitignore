@@ -177,4 +177,4 @@ dist
 # Stuff
 certs/*
 !**/.gitkeep
-src/compiled/
+src/client/compiled/

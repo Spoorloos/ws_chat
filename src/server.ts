@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import type { ErrorLike, Server } from 'bun';
-import type {WsData, CustomWebSocket, Room, Messages, MessageData } from './ts/types';
+import type { WsData, CustomWebSocket, Room, Messages, MessageData } from './types';
 
 // Variables
 const sockets = new Map<string, CustomWebSocket>();
@@ -123,7 +123,7 @@ async function getFile(path: string) {
 }
 
 function serveLoginRoute() {
-    return new Response(Bun.file('./src/login.html'));
+    return new Response(Bun.file('./src/client/login.html'));
 }
 
 function serveChatRoute(request: Request, searchParams: URLSearchParams) {
@@ -148,7 +148,7 @@ function serveChatRoute(request: Request, searchParams: URLSearchParams) {
         return new Response('Upgrade failed', { status: 500 });
     }
 
-    return new Response(Bun.file('./src/chat.html'));
+    return new Response(Bun.file('./src/client/chat.html'));
 }
 
 async function handleFetch(request: Request, server: Server) {
@@ -160,7 +160,7 @@ async function handleFetch(request: Request, server: Server) {
         case '/chat':
             return serveChatRoute(request, searchParams);
         default:
-            const file = await getFile('./src' + pathname);
+            const file = await getFile('./src/client' + pathname);
             return file ?
                 new Response(file) :
                 new Response(null, { status: 404 });

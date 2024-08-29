@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { Server, ServerWebSocket } from 'bun';
+import type { ErrorLike, Server, ServerWebSocket } from 'bun';
 
 // Types
 interface WsData {
@@ -35,8 +35,8 @@ const sockets = new Map<string, CustomWebSocket>();
 const rooms = new Map<string, Room>();
 
 // Functions
-function log(message: string) {
-    console.log(chalk.gray(new Date().toLocaleTimeString()), message);
+function log(...message: any[]) {
+    console.log(chalk.gray(new Date().toLocaleTimeString()), ...message);
 }
 
 function sendToRoom(room: string, data: MessageData) {
@@ -150,39 +150,43 @@ async function getFile(path: string) {
     return (await file.exists()) ? file : undefined;
 }
 
+function serveLoginRoute() {
+    return new Response(Bun.file('./src/login.html'));
+}
+
+function serveChatRoute(request: Request, searchParams: URLSearchParams) {
+    const username = searchParams.get('username');
+    const room = searchParams.get('room');
+
+    if (!username || username.length > 20 || !room || room.length > 50) {
+        return new Response(null, { status: 400 });
+    }
+
+    if (request.headers.get('upgrade') === 'websocket') {
+        const data: WsData = {
+            username,
+            room,
+            uuid: crypto.randomUUID()
+        }
+
+        if (server.upgrade(request, { data })) {
+            return;
+        }
+
+        return new Response('Upgrade failed', { status: 500 });
+    }
+
+    return new Response(Bun.file('./src/chat.html'));
+}
+
 async function handleFetch(request: Request, server: Server) {
     const { pathname, searchParams } = new URL(request.url);
 
     switch (pathname) {
-        // Serve the start page
         case '/':
-            return new Response(Bun.file('./src/login.html'));
-
-        // Establish connection or serve the chat page
+            return serveLoginRoute();
         case '/chat':
-            const data: WsData = {
-                username: searchParams.get('username') || 'Anonymous',
-                room: searchParams.get('room') || '1',
-                uuid: crypto.randomUUID()
-            }
-
-            // Validate the data
-            if (data.username.length > 20 || data.room.length > 50) {
-                return new Response(null, { status: 400 });
-            }
-
-            // Websocket upgrade logic
-            if (request.headers.get('upgrade') === 'websocket') {
-                if (server.upgrade(request, { data })) {
-                    return;
-                }
-                return new Response('Upgrade failed', { status: 500 });
-            }
-
-            // Serve the chat page if it's not a websocket upgrade
-            return new Response(Bun.file('./src/chat.html'));
-
-        // Serve any other files requested
+            return serveChatRoute(request, searchParams);
         default:
             const file = await getFile('./src' + pathname);
             return file ?
@@ -191,18 +195,27 @@ async function handleFetch(request: Request, server: Server) {
     }
 }
 
+function handleError(request: ErrorLike) {
+    log(chalk.redBright('The server encountered an error!'), `"${request.message}"`);
+    return new Response(`The server encountered an error! "${request.message}"`, { status: 500 });
+}
+
 // Setup server
 const server = Bun.serve({
     port: 3000,
-    cert: await getFile('./certs/cert.pem'),
-    key: await getFile('./certs/key.pem'),
-    passphrase: '12345',
+    development: false,
     fetch: handleFetch,
+    error: handleError,
     websocket: {
         open: handleOpen,
         close: handleClose,
         message: handleMessage
-    }
+    },
+    tls: {
+        cert: await getFile('./certs/cert.pem'),
+        key: await getFile('./certs/key.pem'),
+        passphrase: '12345',
+    },
 });
 
 console.log(`Server started at ${chalk.blueBright(server.url)}`);

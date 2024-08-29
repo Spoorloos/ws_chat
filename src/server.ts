@@ -1,34 +1,6 @@
 import chalk from 'chalk';
-import type { ErrorLike, Server, ServerWebSocket } from 'bun';
-
-// Types
-interface WsData {
-    readonly uuid: string;
-    readonly username: string;
-    readonly room: string;
-}
-
-interface CustomWebSocket extends ServerWebSocket<unknown> {
-    readonly data: WsData;
-}
-
-interface Room {
-    readonly publicKeys: Map<string, string>
-}
-
-interface Message {
-    readonly content: string,
-    readonly iv: string
-}
-
-interface Messages {
-    [targetUuid: string]: Message
-}
-
-interface MessageData {
-    readonly type: 'message' | 'exchange' | 'server' | 'keyinit',
-    [key: string]: any;
-}
+import type { ErrorLike, Server } from 'bun';
+import type {WsData, CustomWebSocket, Room, Messages, MessageData } from './ts/types';
 
 // Variables
 const sockets = new Map<string, CustomWebSocket>();
@@ -214,7 +186,7 @@ const server = Bun.serve({
     tls: {
         cert: await getFile('./certs/cert.pem'),
         key: await getFile('./certs/key.pem'),
-        passphrase: '12345',
+        passphrase: 'niggaman',
     },
 });
 

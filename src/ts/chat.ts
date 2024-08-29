@@ -1,31 +1,9 @@
-// Types
-interface Message {
-    readonly content: string,
-    readonly iv: string
-}
-
-interface Messages {
-    [targetUuid: string]: Message
-}
-
-interface KeyExchangeData {
-    readonly [uuid: string]: string
-}
-
-interface MessageResponse {
-    readonly type: string,
-    readonly sender?: string,
-    readonly uuid?: string,
-    readonly content?: string,
-    readonly iv?: string,
-    readonly key?: string,
-    readonly keys?: KeyExchangeData
-}
+import type { Message, Messages, MessageData, KeyExchangeData } from './types';
 
 // Variables
 const webSocket = new WebSocket(window.location.href);
+const secretKeys = new Map<string, CryptoKey>();
 let publicKey: CryptoKey, privateKey: CryptoKey;
-let secretKeys: Map<string, CryptoKey> = new Map();
 
 // Elements
 const form: HTMLFormElement = document.querySelector('.main__input')!;
@@ -119,8 +97,10 @@ async function createMessage(sender: string, uuid: string, content: string, iv: 
 
     const contentParagraph = document.createElement('p');
     contentParagraph.classList.add('message__content');
-    if (secretKeys.has(uuid)) {
-        contentParagraph.textContent = await decryptMessage(secretKeys.get(uuid)!, content, iv);
+
+    const secretKey = secretKeys.get(uuid);
+    if (secretKey) {
+        contentParagraph.textContent = await decryptMessage(secretKey, content, iv);
     }
 
     messageDiv.append(senderSpan, contentParagraph);
@@ -146,20 +126,24 @@ async function handleKeyInit(keys: KeyExchangeData) {
     }
 }
 
+function sendToServer(data: MessageData) {
+    webSocket.send(JSON.stringify(data));
+}
+
 // Events
 webSocket.addEventListener('open', async () => {
     const keyPair = await generateKeyPair();
 
     ({ publicKey, privateKey } = keyPair);
 
-    webSocket.send(JSON.stringify({
+    sendToServer({
         type: 'exchange',
         key: await exportPublicKey(publicKey)
-    }));
+    });
 });
 
 webSocket.addEventListener('message', (event) => {
-    const { type, ...data }: MessageResponse = JSON.parse(event.data);
+    const { type, ...data }: MessageData = JSON.parse(event.data);
 
     switch (type) {
         case 'message':
@@ -194,8 +178,8 @@ form.addEventListener('submit', async (event) => {
         messages[uuid] = await encryptMessage(secretKey, message);
     }));
 
-    webSocket.send(JSON.stringify({
+    sendToServer({
         type: 'message',
         messages
-    }));
+    });
 });

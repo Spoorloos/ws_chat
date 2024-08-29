@@ -21,13 +21,13 @@ Login Page | Chat Page
 ### Getting Started
 
 1. Clone the repository.
-2. Place your OpenSSL certificates in the certs/ folder if you have any. (The website will not function properly over HTTP)
+2. Place your SSL certificates in the certs/ folder if you have any. (The website will not function properly over HTTP)
 3. Run the following commands inside a terminal in the folder:
 ```bash
 bun install
 ```
 ```
-bun start
+bun run start
 ```
 
 ## Contributions

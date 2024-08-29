@@ -184,9 +184,9 @@ const server = Bun.serve({
         message: handleMessage
     },
     tls: {
-        cert: await getFile('./certs/cert.pem'),
-        key: await getFile('./certs/key.pem'),
-        passphrase: '12345',
+        cert: await getFile(`./certs/${Bun.env.cert}`),
+        key: await getFile(`./certs/${Bun.env.key}`),
+        passphrase: Bun.env.passphrase,
     }
 });
 

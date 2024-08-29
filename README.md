@@ -1,6 +1,6 @@
 # Websocket Chatrooms
 
-This is a simple websocket chatroom website I built using Bun and websockets during my time off from school to learn more about end to end encrytion and just as a way to entertain myself.
+This is a simple websocket chatroom website I built using Bun and websockets during my time off from school to learn more about end to end encryption and just as a way to entertain myself.
 
 Login Page | Chat Page
 --- | ---

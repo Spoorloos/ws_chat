@@ -1,33 +1,71 @@
 import type { ServerWebSocket } from 'bun';
 
 interface WsData {
-    readonly uuid: string;
-    readonly username: string;
-    readonly room: string;
+    uuid: string;
+    username: string;
+    room: string;
 }
 
 interface CustomWebSocket extends ServerWebSocket<unknown> {
-    readonly data: WsData;
+    data: WsData;
 }
 
 interface Room {
-    readonly publicKeys: Map<string, string>
+    publicKeys: Map<string, string>
 }
 
 interface Message {
-    readonly content: string,
-    readonly iv: string
+    content: string,
+    iv: string
 }
 
 interface Messages {
     [targetUuid: string]: Message
 }
 
-interface MessageData {
-    readonly type: 'message' | 'exchange' | 'server' | 'keyinit',
-    [key: string]: any;
+interface ExchangeKeys {
+    [uuid: string]: string;
 }
 
-interface KeyExchangeData {
-    readonly [uuid: string]: string
+// Message Data Types
+interface MessageCaseData {
+    readonly type: 'message';
+    sender: string;
+    uuid: string;
+    content: string;
+    iv: string;
 }
+
+interface SendMessageCaseData {
+    readonly type: 'send_message';
+    messages: Messages;
+}
+
+interface ExchangeCaseData {
+    readonly type: 'exchange';
+    uuid: string;
+    key: string;
+}
+
+interface SendExchangeCaseData {
+    readonly type: 'send_exchange';
+    key: string;
+}
+
+interface AnnouncementCaseData {
+    readonly type: 'announcement';
+    content: string;
+}
+
+interface KeyInitCaseData {
+    readonly type: 'keyinit';
+    keys: ExchangeKeys;
+}
+
+type MessageData =
+    | MessageCaseData
+    | SendMessageCaseData
+    | ExchangeCaseData
+    | SendExchangeCaseData
+    | AnnouncementCaseData
+    | KeyInitCaseData;

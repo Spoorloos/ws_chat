@@ -30,7 +30,7 @@ function handleOpen(ws: CustomWebSocket) {
     }
 
     sendToRoom(room, {
-        type: 'server',
+        type: 'announcement',
         content: `${username} has joined the room!`
     });
 
@@ -58,39 +58,29 @@ function handleClose(ws: CustomWebSocket) {
     }
 
     sendToRoom(room, {
-        type: 'server',
+        type: 'announcement',
         content: `${username} has left the room!`
     });
 
     log(`${username} left room "${room}"`);
 }
 
-function handleMessage(ws: CustomWebSocket, received: string) {
-    const { type, ...data }: MessageData = JSON.parse(received);
-
-    switch (type) {
-        case 'message':
-            if (data.messages) {
-                handleUserMessage(ws.data, data.messages);
-            }
-            break;
-        case 'exchange':
-            if (data.key) {
-                handleExchange(ws.data, data.key);
-            }
-            break;
-    }
+function getMessageLength(encrypted: string) {
+    return atob(encrypted).length - 16;
 }
 
 function handleUserMessage({ username, room, uuid }: WsData, messages: Messages) {
     for (const [ targetUuid, message ] of Object.entries(messages)) {
-        if (!targetUuid) continue;
-
-        const { content, iv } = message ?? {};
-        if (!content || !iv) continue;
+        if (!targetUuid || !message) continue;
 
         const ws = sockets.get(targetUuid);
         if (!ws) continue;
+
+        const { content, iv } = message;
+        if (!content || !iv) continue;
+
+        const contentLength = getMessageLength(content);
+        if (contentLength === 0 || contentLength > 250) continue;
 
         sendToClient(ws, {
             type: 'message',
@@ -117,6 +107,23 @@ function handleExchange({ room, uuid }: WsData, key: string) {
     });
 }
 
+function handleMessage(ws: CustomWebSocket, received: string) {
+    const data: MessageData = JSON.parse(received);
+
+    switch (data.type) {
+        case 'send_message':
+            if (data.messages) {
+                handleUserMessage(ws.data, data.messages);
+            }
+            break;
+        case 'send_exchange':
+            if (data.key) {
+                handleExchange(ws.data, data.key);
+            }
+            break;
+    }
+}
+
 async function getFile(path: string) {
     const file = Bun.file(path);
     return (await file.exists()) ? file : undefined;
@@ -127,18 +134,18 @@ function serveLoginRoute() {
 }
 
 function serveChatRoute(request: Request, searchParams: URLSearchParams) {
-    const username = searchParams.get('username');
+    const username = searchParams.get('username') || 'Anonymous';
     const room = searchParams.get('room');
 
-    if (!username || username.length > 20 || !room || room.length > 50) {
+    if (username.length > 20 || !room || room.length > 50) {
         return new Response(null, { status: 400 });
     }
 
     if (request.headers.get('upgrade') === 'websocket') {
         const data: WsData = {
+            uuid: crypto.randomUUID(),
             username,
-            room,
-            uuid: crypto.randomUUID()
+            room
         }
 
         if (server.upgrade(request, { data })) {

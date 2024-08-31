@@ -1,8 +1,8 @@
-import type { Message, Messages, MessageData, KeyExchangeData } from '../../types';
+import type { Message, Messages, MessageData, ExchangeKeys } from '../../types';
 
 // Variables
 const webSocket = new WebSocket(window.location.href);
-const secretKeys = new Map<string, CryptoKey>();
+let secretKeys = new Map<string, CryptoKey>();
 let publicKey: CryptoKey, privateKey: CryptoKey;
 
 // Elements
@@ -12,6 +12,10 @@ const sendBtn: HTMLInputElement = document.querySelector('.main__input__send')!;
 const messages: HTMLDivElement = document.querySelector('.main__messages')!;
 
 // Functions
+function sendToServer(data: MessageData) {
+    webSocket.send(JSON.stringify(data));
+}
+
 function stringToHexColor(str: string) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -120,36 +124,30 @@ async function handleKeyExchange(uuid: string, encodedKey: string) {
     secretKeys.set(uuid, secretKey);
 }
 
-async function handleKeyInit(keys: KeyExchangeData) {
+async function handleKeyInit(keys: ExchangeKeys) {
     for (const [ uuid, encodedKey ] of Object.entries(keys)) {
         handleKeyExchange(uuid, encodedKey);
     }
 }
 
-function sendToServer(data: MessageData) {
-    webSocket.send(JSON.stringify(data));
-}
-
 // Events
 webSocket.addEventListener('open', async function() {
-    const keyPair = await generateKeyPair();
-
-    ({ publicKey, privateKey } = keyPair);
+    ({ publicKey, privateKey } = await generateKeyPair());
 
     sendToServer({
-        type: 'exchange',
+        type: 'send_exchange',
         key: await exportPublicKey(publicKey)
     });
 });
 
 webSocket.addEventListener('message', function(event) {
-    const { type, ...data }: MessageData = JSON.parse(event.data);
+    const data: MessageData = JSON.parse(event.data);
 
-    switch (type) {
+    switch (data.type) {
         case 'message':
             createMessage(data.sender!, data.uuid!, data.content!, data.iv!);
             break;
-        case 'server':
+        case 'announcement':
             createAnnouncement(data.content!);
             break;
         case 'exchange':
@@ -179,7 +177,7 @@ form.addEventListener('submit', async function(event) {
     }));
 
     sendToServer({
-        type: 'message',
+        type: 'send_message',
         messages
     });
 });

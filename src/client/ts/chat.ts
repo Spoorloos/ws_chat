@@ -164,8 +164,9 @@ webSocket.addEventListener('message', function(event) {
     }
 });
 
-webSocket.addEventListener('close', function() {
-    createAnnouncement('There was an error related to the server!', true);
+webSocket.addEventListener('error', function() {
+    createAnnouncement('There was an error related to the server. Attempting to reconnect in 2 seconds...', true);
+    setTimeout(() => window.location.reload(), 2000);
 });
 
 messageInput.addEventListener('input', function() {
@@ -174,10 +175,11 @@ messageInput.addEventListener('input', function() {
 });
 
 form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
     const messages: Messages = {};
     const message = messageInput.value.trim();
 
-    event.preventDefault();
     messageInput.value = '';
     sendBtn.disabled = true;
 

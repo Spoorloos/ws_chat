@@ -10,10 +10,6 @@ interface CustomWebSocket extends ServerWebSocket<unknown> {
     data: WsData;
 }
 
-interface Room {
-    publicKeys: Map<string, string>
-}
-
 interface Message {
     content: string,
     iv: string

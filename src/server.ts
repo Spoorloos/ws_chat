@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import type { ErrorLike } from 'bun';
-import type { WsData, CustomWebSocket, Room, Messages, MessageData } from './types';
+import type { WsData, CustomWebSocket, Messages, MessageData } from './types';
 
 // Variables
 const sockets = new Map<string, CustomWebSocket>();
-const rooms = new Map<string, Room>();
+const roomClientKeys = new Map<string, Map<string, string>>();
 
 // Functions
 function log(...message: any[]) {
@@ -25,8 +25,8 @@ function handleOpen(ws: CustomWebSocket) {
     ws.subscribe(room);
     sockets.set(uuid, ws);
 
-    if (!rooms.has(room)) {
-        rooms.set(room, { publicKeys: new Map() });
+    if (!roomClientKeys.has(room)) {
+        roomClientKeys.set(room, new Map());
     }
 
     sendToRoom(room, {
@@ -36,7 +36,7 @@ function handleOpen(ws: CustomWebSocket) {
 
     sendToClient(ws, {
         type: 'keyinit',
-        keys: Object.fromEntries(rooms.get(room)!.publicKeys)
+        keys: Object.fromEntries(roomClientKeys.get(room)!)
     });
 
     log(`${username} joined room "${room}"`);
@@ -48,12 +48,12 @@ function handleClose(ws: CustomWebSocket) {
     ws.unsubscribe(room);
     sockets.delete(uuid);
 
-    const roomData = rooms.get(room);
-    if (roomData) {
-        roomData.publicKeys.delete(uuid);
+    const keys = roomClientKeys.get(room);
+    if (keys) {
+        keys.delete(uuid);
 
-        if (roomData.publicKeys.size === 0) {
-            rooms.delete(room);
+        if (keys.size === 0) {
+            roomClientKeys.delete(room);
         }
     }
 
@@ -95,9 +95,9 @@ function handleUserMessage({ username, room, uuid }: WsData, messages: Messages)
 }
 
 function handleExchange({ room, uuid }: WsData, key: string) {
-    const roomData = rooms.get(room);
-    if (roomData) {
-        roomData.publicKeys.set(uuid, key);
+    const keys = roomClientKeys.get(room);
+    if (keys) {
+        keys.set(uuid, key);
     }
 
     sendToRoom(room, {
@@ -168,9 +168,7 @@ async function handleFetch(request: Request) {
             return serveChatRoute(request, searchParams);
         default:
             const file = await getFile('./src/client' + pathname);
-            return file ?
-                new Response(file) :
-                new Response(null, { status: 404 });
+            return new Response(file, file ? undefined : { status: 404 });
     }
 }
 
@@ -181,7 +179,6 @@ function handleError(error: ErrorLike) {
 
 // Setup server
 const server = Bun.serve({
-    port: 3000,
     development: false,
     fetch: handleFetch,
     error: handleError,
@@ -191,10 +188,10 @@ const server = Bun.serve({
         message: handleMessage
     },
     tls: {
-        cert: await getFile(`./certs/${Bun.env.CERT ?? 'cert.pem'}`),
-        key: await getFile(`./certs/${Bun.env.KEY ?? 'key.pem'}`),
+        cert: await getFile('./certs/' + Bun.env.CERT ?? 'cert.pem'),
+        key: await getFile('./certs/' + Bun.env.KEY ?? 'key.pem'),
         passphrase: Bun.env.PASSPHRASE,
     }
 });
 
-console.log(`Server started at ${chalk.blueBright(server.url)}`);
+console.log('Server started at ' + chalk.blueBright(server.url));

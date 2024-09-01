@@ -19,6 +19,16 @@ function sendToClient(client: CustomWebSocket, data: MessageData) {
     client.send(JSON.stringify(data));
 }
 
+function getMessageLength(encrypted: string) {
+    return atob(encrypted).length - 16;
+}
+
+async function getFile(path: string) {
+    const file = Bun.file(path);
+    return (await file.exists()) ? file : undefined;
+}
+
+// Websocket
 function handleOpen(ws: CustomWebSocket) {
     let { username, room, uuid } = ws.data;
 
@@ -63,10 +73,6 @@ function handleClose(ws: CustomWebSocket) {
     });
 
     log(`${username} left room "${room}"`);
-}
-
-function getMessageLength(encrypted: string) {
-    return atob(encrypted).length - 16;
 }
 
 function handleUserMessage({ username, room, uuid }: WsData, messages: Messages) {
@@ -124,38 +130,24 @@ function handleMessage(ws: CustomWebSocket, received: string) {
     }
 }
 
-async function getFile(path: string) {
-    const file = Bun.file(path);
-    return (await file.exists()) ? file : undefined;
-}
-
-function serveLoginRoute() {
-    return new Response(Bun.file('./src/client/login.html'));
-}
-
-function serveChatRoute(request: Request, searchParams: URLSearchParams) {
+// Routing
+function upgradeSocket(request: Request, searchParams: URLSearchParams) {
     const username = searchParams.get('username') || 'Anonymous';
     const room = searchParams.get('room');
 
-    if (username.length > 20 || !room || room.length > 50) {
+    if (username.length > 25 || !room || room.length > 50) {
         return new Response(null, { status: 400 });
     }
 
-    if (request.headers.get('upgrade') === 'websocket') {
-        const data: WsData = {
-            uuid: crypto.randomUUID(),
-            username,
-            room
-        }
-
-        if (server.upgrade(request, { data })) {
-            return;
-        }
-
-        return new Response('Upgrade failed', { status: 500 });
+    const data: WsData = {
+        uuid: crypto.randomUUID(),
+        username,
+        room
     }
 
-    return new Response(Bun.file('./src/client/chat.html'));
+    if (!server.upgrade(request, { data })) {
+        return new Response('Upgrade failed', { status: 500 });
+    }
 }
 
 async function handleFetch(request: Request) {
@@ -163,9 +155,11 @@ async function handleFetch(request: Request) {
 
     switch (pathname) {
         case '/':
-            return serveLoginRoute();
+            return new Response(Bun.file('./src/client/index.html'));
         case '/chat':
-            return serveChatRoute(request, searchParams);
+            return new Response(Bun.file('./src/client/chat.html'));
+        case '/socket':
+            return upgradeSocket(request, searchParams);
         default:
             const file = await getFile('./src/client' + pathname);
             return new Response(file, file ? undefined : { status: 404 });

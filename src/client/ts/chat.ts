@@ -1,9 +1,9 @@
 import type { Message, Messages, MessageData, ExchangeKeys } from '../../types';
 
 // Variables
-const webSocket = new WebSocket(window.location.href);
 let secretKeys = new Map<string, CryptoKey>();
 let publicKey: CryptoKey, privateKey: CryptoKey;
+const webSocket = new WebSocket('/socket' + window.location.search);
 
 // Elements
 const form: HTMLFormElement = document.querySelector('.main__input')!;
@@ -91,6 +91,12 @@ async function decryptMessage(key: CryptoKey, encryptedMessage: string, iv: stri
 }
 
 async function createMessage(sender: string, uuid: string, content: string, iv: string) {
+    const secretKey = secretKeys.get(uuid);
+    if (!secretKey) {
+        console.log('ERROR: Received a message from an unknown sender');
+        return;
+    }
+
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
 
@@ -101,20 +107,19 @@ async function createMessage(sender: string, uuid: string, content: string, iv: 
 
     const contentParagraph = document.createElement('p');
     contentParagraph.classList.add('message__content');
-
-    const secretKey = secretKeys.get(uuid);
-    if (secretKey) {
-        contentParagraph.textContent = await decryptMessage(secretKey, content, iv);
-    }
+    contentParagraph.textContent = await decryptMessage(secretKey, content, iv);
 
     messageDiv.append(senderSpan, contentParagraph);
     messages.prepend(messageDiv);
 }
 
-function createAnnouncement(content: string) {
+function createAnnouncement(content: string, isError: boolean = false) {
     const announcement = document.createElement('p');
     announcement.classList.add('announcement');
     announcement.textContent = content;
+    if (isError) {
+        announcement.style.color = '#F44';
+    }
     messages.prepend(announcement);
 }
 
@@ -157,6 +162,10 @@ webSocket.addEventListener('message', function(event) {
             handleKeyInit(data.keys!);
             break;
     }
+});
+
+webSocket.addEventListener('close', function() {
+    createAnnouncement('There was an error related to the server!', true);
 });
 
 messageInput.addEventListener('input', function() {

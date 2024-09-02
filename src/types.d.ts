@@ -34,7 +34,7 @@ interface MessageCaseData {
 
 interface SendMessageCaseData {
     readonly type: 'send_message';
-    messages: Messages;
+    messages?: Messages;
 }
 
 interface ExchangeCaseData {
@@ -45,7 +45,7 @@ interface ExchangeCaseData {
 
 interface SendExchangeCaseData {
     readonly type: 'send_exchange';
-    key: string;
+    key?: string;
 }
 
 interface AnnouncementCaseData {

@@ -19,10 +19,6 @@ function sendToClient(client: CustomWebSocket, data: MessageData) {
     client.send(JSON.stringify(data));
 }
 
-function getMessageLength(encrypted: string) {
-    return atob(encrypted).length - 16;
-}
-
 async function getFile(path: string) {
     const file = Bun.file(path);
     return (await file.exists()) ? file : undefined;
@@ -75,10 +71,14 @@ function handleClose(ws: CustomWebSocket) {
     log(`${username} left room "${room}"`);
 }
 
+function getMessageLength(encrypted: string) {
+    return atob(encrypted).length - 16;
+}
+
 function handleUserMessage(data: WsData, messages: Messages) {
     for (const [ targetUuid, message ] of Object.entries(messages)) {
         if (typeof targetUuid !== 'string' ||
-            typeof message !== 'object') continue;
+            typeof message !== 'object' || message === null) continue;
 
         const ws = sockets.get(targetUuid);
         if (!ws) continue;
@@ -115,16 +115,23 @@ function handleExchange(data: WsData, key: string) {
     });
 }
 
+function isMessageData(data: unknown): data is MessageData {
+    return typeof data === 'object' && data !== null && 'type' in data;
+}
+
 function handleMessage(ws: CustomWebSocket, received: string) {
     try {
-        var data: MessageData = JSON.parse(received);
+        var data: unknown = JSON.parse(received);
     } catch {
+        ws.close(1011);
         return;
     }
 
+    if (!isMessageData(data)) return;
+
     switch (data.type) {
         case 'send_message':
-            if (typeof data.messages === 'object') {
+            if (typeof data.messages === 'object' && data.messages !== null) {
                 handleUserMessage(ws.data, data.messages);
             }
             break;
@@ -133,6 +140,8 @@ function handleMessage(ws: CustomWebSocket, received: string) {
                 handleExchange(ws.data, data.key);
             }
             break;
+        default:
+            ws.close(1011);
     }
 }
 
@@ -177,15 +186,25 @@ function handleError(error: ErrorLike) {
     return new Response(`The server encountered an error! "${error}"`, { status: 500 });
 }
 
+function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
+    return function(...args: Parameters<T>): ReturnType<T> | undefined {
+        try {
+            return callback.apply(this, args);
+        } catch (error) {
+            log(chalk.redBright('The server encountered an error!'), `"${error}"`);
+        }
+    } as T;
+}
+
 // Setup server
 const server = Bun.serve({
     development: false,
     fetch: handleFetch,
     error: handleError,
     websocket: {
-        open: handleOpen,
-        close: handleClose,
-        message: handleMessage
+        open: wrapInErrorHandler(handleOpen),
+        close: wrapInErrorHandler(handleClose),
+        message: wrapInErrorHandler(handleMessage)
     },
     tls: {
         cert: await getFile('./certs/' + Bun.env.CERT ?? 'cert.pem'),

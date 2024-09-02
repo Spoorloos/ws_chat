@@ -77,16 +77,18 @@ function handleClose(ws: CustomWebSocket) {
 
 function handleUserMessage(data: WsData, messages: Messages) {
     for (const [ targetUuid, message ] of Object.entries(messages)) {
-        if (!targetUuid || !message) continue;
+        if (typeof targetUuid !== 'string' ||
+            typeof message !== 'object') continue;
 
         const ws = sockets.get(targetUuid);
         if (!ws) continue;
 
         const { content, iv } = message;
-        if (!content || !iv) continue;
+        if (typeof content !== 'string' ||
+            typeof iv !== 'string') continue;
 
-        const contentLength = getMessageLength(content);
-        if (contentLength === 0 || contentLength > 250) continue;
+        const length = getMessageLength(content);
+        if (length === 0 || length > 256) continue;
 
         sendToClient(ws, {
             type: 'message',
@@ -102,9 +104,9 @@ function handleUserMessage(data: WsData, messages: Messages) {
 
 function handleExchange(data: WsData, key: string) {
     const keys = roomClientKeys.get(data.room);
-    if (keys) {
-        keys.set(data.uuid, key);
-    }
+    if (!keys || keys.has(data.uuid)) return;
+
+    keys.set(data.uuid, key);
 
     sendToRoom(data.room, {
         type: 'exchange',

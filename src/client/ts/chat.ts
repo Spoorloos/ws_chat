@@ -171,7 +171,7 @@ webSocket.addEventListener('error', function() {
 
 messageInput.addEventListener('input', function() {
     const length = messageInput.value.trim().length;
-    sendBtn.disabled = (length === 0 || length > 250);
+    sendBtn.disabled = (length === 0 || length > 256);
 });
 
 form.addEventListener('submit', async function(event) {

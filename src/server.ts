@@ -75,7 +75,7 @@ function handleClose(ws: CustomWebSocket) {
     log(`${username} left room "${room}"`);
 }
 
-function handleUserMessage({ username, room, uuid }: WsData, messages: Messages) {
+function handleUserMessage(data: WsData, messages: Messages) {
     for (const [ targetUuid, message ] of Object.entries(messages)) {
         if (!targetUuid || !message) continue;
 
@@ -90,40 +90,44 @@ function handleUserMessage({ username, room, uuid }: WsData, messages: Messages)
 
         sendToClient(ws, {
             type: 'message',
-            sender: username,
-            uuid,
+            sender: data.username,
+            uuid: data.uuid,
             content,
             iv
         });
     }
 
-    log(`${username} sent a message in room "${room}"`);
+    log(`${data.username} sent a message in room "${data.room}"`);
 }
 
-function handleExchange({ room, uuid }: WsData, key: string) {
-    const keys = roomClientKeys.get(room);
+function handleExchange(data: WsData, key: string) {
+    const keys = roomClientKeys.get(data.room);
     if (keys) {
-        keys.set(uuid, key);
+        keys.set(data.uuid, key);
     }
 
-    sendToRoom(room, {
+    sendToRoom(data.room, {
         type: 'exchange',
-        uuid,
+        uuid: data.uuid,
         key
     });
 }
 
 function handleMessage(ws: CustomWebSocket, received: string) {
-    const data: MessageData = JSON.parse(received);
+    try {
+        var data: MessageData = JSON.parse(received);
+    } catch {
+        return;
+    }
 
     switch (data.type) {
         case 'send_message':
-            if (data.messages) {
+            if (typeof data.messages === 'object') {
                 handleUserMessage(ws.data, data.messages);
             }
             break;
         case 'send_exchange':
-            if (data.key) {
+            if (typeof data.key === 'string') {
                 handleExchange(ws.data, data.key);
             }
             break;
@@ -135,7 +139,7 @@ function upgradeSocket(request: Request, searchParams: URLSearchParams) {
     const username = searchParams.get('username') || 'Anonymous';
     const room = searchParams.get('room');
 
-    if (username.length > 25 || !room || room.length > 50) {
+    if (username.length > 16 || !room || room.length > 32) {
         return new Response(null, { status: 400 });
     }
 

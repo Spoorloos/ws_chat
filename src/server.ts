@@ -11,6 +11,11 @@ function log(...message: any[]) {
     console.log(chalk.gray(new Date().toLocaleTimeString()), ...message);
 }
 
+function logError(error: any) {
+    log(chalk.redBright('The server encountered an error:'));
+    console.error(error);
+}
+
 function sendToRoom(room: string, data: MessageData) {
     server.publish(room, JSON.stringify(data));
 }
@@ -182,16 +187,16 @@ async function handleFetch(request: Request) {
 }
 
 function handleError(error: ErrorLike) {
-    log(chalk.redBright('The server encountered an error!'), `"${error}"`);
+    logError(error);
     return new Response(`The server encountered an error! "${error}"`, { status: 500 });
 }
 
 function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
-    return function(...args: Parameters<T>): ReturnType<T> | undefined {
+    return function(this: any, ...args: Parameters<T>): ReturnType<T> | undefined {
         try {
             return callback.apply(this, args);
         } catch (error) {
-            log(chalk.redBright('The server encountered an error!'), `"${error}"`);
+            logError(error);
         }
     } as T;
 }

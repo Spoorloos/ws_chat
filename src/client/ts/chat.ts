@@ -6,10 +6,10 @@ let publicKey: CryptoKey, privateKey: CryptoKey;
 const webSocket = new WebSocket('/socket' + window.location.search);
 
 // Elements
-const form: HTMLFormElement = document.querySelector('.main__input')!;
-const messageInput: HTMLInputElement = document.querySelector('.main__input__message')!;
-const sendBtn: HTMLInputElement = document.querySelector('.main__input__send')!;
-const messages: HTMLDivElement = document.querySelector('.main__messages')!;
+const form = document.querySelector<HTMLFormElement>('.main__input')!;
+const messageInput = document.querySelector<HTMLInputElement>('.main__input__message')!;
+const sendBtn = document.querySelector<HTMLInputElement>('.main__input__send')!;
+const messages = document.querySelector<HTMLDivElement>('.main__messages')!;
 
 // Functions
 function sendToServer(data: MessageData) {

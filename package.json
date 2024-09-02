@@ -3,7 +3,7 @@
     "module": "./src/server.ts",
     "type": "module",
     "scripts": {
-        "start": "bun build ./src/client/ts/chat.ts --outdir ./src/client/compiled/ --minify && bun run ./src/server.ts"
+        "start": "bun run ./build.ts && bun run ./src/server.ts"
     },
     "repository": {
         "type": "git",

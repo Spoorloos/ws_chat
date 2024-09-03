@@ -1,15 +1,15 @@
-import type { Message, Messages, MessageData, ExchangeKeys } from '../../types';
+import type { Message, Messages, MessageData, ExchangeKeys } from "../../types";
 
 // Variables
 let secretKeys = new Map<string, CryptoKey>();
 let publicKey: CryptoKey, privateKey: CryptoKey;
-const webSocket = new WebSocket('/socket' + window.location.search);
+const webSocket = new WebSocket("/socket" + window.location.search);
 
 // Elements
-const form = document.querySelector<HTMLFormElement>('.main__input')!;
-const messageInput = document.querySelector<HTMLInputElement>('.main__input__message')!;
-const sendBtn = document.querySelector<HTMLInputElement>('.main__input__send')!;
-const messages = document.querySelector<HTMLDivElement>('.main__messages')!;
+const form = document.querySelector<HTMLFormElement>(".main__input")!;
+const messageInput = document.querySelector<HTMLInputElement>(".main__input__message")!;
+const sendBtn = document.querySelector<HTMLInputElement>(".main__input__send")!;
+const messages = document.querySelector<HTMLDivElement>(".main__messages")!;
 
 // Functions
 function sendToServer(data: MessageData) {
@@ -22,10 +22,10 @@ function stringToHexColor(str: string) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
 
-    let color = '#';
+    let color = "#";
     for (let i = 0; i < 3; i++) {
         const value = (hash >> (i * 8)) & 0xFF;
-        color += ('00' + value.toString(16)).slice(-2);
+        color += ("00" + value.toString(16)).slice(-2);
     }
 
     return color;
@@ -33,7 +33,7 @@ function stringToHexColor(str: string) {
 
 function bufferToBase64(buffer: ArrayLike<number> | ArrayBufferLike) {
     const binary = new Uint8Array(buffer)
-        .reduce((a, b) => a + String.fromCharCode(b), '');
+        .reduce((a, b) => a + String.fromCharCode(b), "");
     return btoa(binary);
 }
 
@@ -43,37 +43,37 @@ function base64ToBuffer(base64: string) {
 
 async function generateKeyPair() {
     return crypto.subtle.generateKey({
-        name: 'ECDH',
-        namedCurve: 'P-256',
-    }, true, [ 'deriveKey', 'deriveBits' ]);
+        name: "ECDH",
+        namedCurve: "P-256",
+    }, true, [ "deriveKey", "deriveBits" ]);
 }
 
 async function exportPublicKey(key: CryptoKey) {
-    return bufferToBase64(await crypto.subtle.exportKey('spki', key));
+    return bufferToBase64(await crypto.subtle.exportKey("spki", key));
 }
 
 async function importPublicKey(keyData: string) {
-    return crypto.subtle.importKey('spki', base64ToBuffer(keyData), {
-        name: 'ECDH',
-        namedCurve: 'P-256',
+    return crypto.subtle.importKey("spki", base64ToBuffer(keyData), {
+        name: "ECDH",
+        namedCurve: "P-256",
     }, true, []);
 }
 
 async function deriveSharedSecret(privateKey: CryptoKey, publicKey: CryptoKey) {
     return crypto.subtle.deriveKey({
-        name: 'ECDH',
+        name: "ECDH",
         public: publicKey
     }, privateKey, {
-        name: 'AES-GCM',
+        name: "AES-GCM",
         length: 256,
-    }, false, [ 'encrypt', 'decrypt' ]);
+    }, false, [ "encrypt", "decrypt" ]);
 }
 
 async function encryptMessage(key: CryptoKey, message: string) {
     const encodedMessage = new TextEncoder().encode(message);
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encrypted = await crypto.subtle.encrypt({
-        name: 'AES-GCM',
+        name: "AES-GCM",
         iv,
     }, key, encodedMessage);
     return {
@@ -84,7 +84,7 @@ async function encryptMessage(key: CryptoKey, message: string) {
 
 async function decryptMessage(key: CryptoKey, encryptedMessage: string, iv: string) {
     const decrypted = await crypto.subtle.decrypt({
-        name: 'AES-GCM',
+        name: "AES-GCM",
         iv: base64ToBuffer(iv)
     }, key, base64ToBuffer(encryptedMessage));
     return new TextDecoder().decode(decrypted);
@@ -93,20 +93,20 @@ async function decryptMessage(key: CryptoKey, encryptedMessage: string, iv: stri
 async function createMessage(sender: string, uuid: string, content: string, iv: string) {
     const secretKey = secretKeys.get(uuid);
     if (!secretKey) {
-        console.log('ERROR: Received a message from an unknown sender');
+        console.log("ERROR: Received a message from an unknown sender");
         return;
     }
 
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message');
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("message");
 
-    const senderSpan = document.createElement('span');
-    senderSpan.classList.add('message__sender');
+    const senderSpan = document.createElement("span");
+    senderSpan.classList.add("message__sender");
     senderSpan.style.color = stringToHexColor(sender);
     senderSpan.textContent = sender;
 
-    const contentParagraph = document.createElement('p');
-    contentParagraph.classList.add('message__content');
+    const contentParagraph = document.createElement("p");
+    contentParagraph.classList.add("message__content");
     contentParagraph.textContent = await decryptMessage(secretKey, content, iv);
 
     messageDiv.append(senderSpan, contentParagraph);
@@ -114,11 +114,11 @@ async function createMessage(sender: string, uuid: string, content: string, iv: 
 }
 
 function createAnnouncement(content: string, isError: boolean = false) {
-    const announcement = document.createElement('p');
-    announcement.classList.add('announcement');
+    const announcement = document.createElement("p");
+    announcement.classList.add("announcement");
     announcement.textContent = content;
     if (isError) {
-        announcement.style.color = '#F44';
+        announcement.style.color = "#F44";
     }
     messages.prepend(announcement);
 }
@@ -136,51 +136,51 @@ async function handleKeyInit(keys: ExchangeKeys) {
 }
 
 // Events
-webSocket.addEventListener('open', async function() {
+webSocket.addEventListener("open", async function() {
     ({ publicKey, privateKey } = await generateKeyPair());
 
     sendToServer({
-        type: 'send_exchange',
+        type: "send_exchange",
         key: await exportPublicKey(publicKey)
     });
 });
 
-webSocket.addEventListener('message', function(event) {
+webSocket.addEventListener("message", function(event) {
     const data: MessageData = JSON.parse(event.data);
 
     switch (data.type) {
-        case 'message':
+        case "message":
             createMessage(data.sender!, data.uuid!, data.content!, data.iv!);
             break;
-        case 'announcement':
+        case "announcement":
             createAnnouncement(data.content!);
             break;
-        case 'exchange':
+        case "exchange":
             handleKeyExchange(data.uuid!, data.key!);
             break;
-        case 'keyinit':
+        case "keyinit":
             handleKeyInit(data.keys!);
             break;
     }
 });
 
-webSocket.addEventListener('error', function() {
-    createAnnouncement('There was an error related to the server. Attempting to reconnect in 2 seconds...', true);
+webSocket.addEventListener("error", function() {
+    createAnnouncement("There was an error related to the server. Attempting to reconnect in 2 seconds...", true);
     setTimeout(() => window.location.reload(), 2000);
 });
 
-messageInput.addEventListener('input', function() {
+messageInput.addEventListener("input", function() {
     const length = messageInput.value.trim().length;
     sendBtn.disabled = (length === 0 || length > 256);
 });
 
-form.addEventListener('submit', async function(event) {
+form.addEventListener("submit", async function(event) {
     event.preventDefault();
 
     const messages: Messages = {};
     const message = messageInput.value.trim();
 
-    messageInput.value = '';
+    messageInput.value = "";
     sendBtn.disabled = true;
 
     await Promise.all([ ...secretKeys ].map(async ([ uuid, secretKey ]) => {
@@ -188,7 +188,7 @@ form.addEventListener('submit', async function(event) {
     }));
 
     sendToServer({
-        type: 'send_message',
+        type: "send_message",
         messages
     });
 });

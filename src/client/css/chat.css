@@ -106,7 +106,7 @@ body {
 }
 
 .message__sender::after {
-    content: ': ';
+    content: ": ";
 }
 
 .message__content {

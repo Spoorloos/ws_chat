@@ -1,6 +1,6 @@
-import chalk from 'chalk';
-import type { ErrorLike } from 'bun';
-import type { WsData, CustomWebSocket, Messages, MessageData } from './types';
+import chalk from "chalk";
+import type { ErrorLike } from "bun";
+import type { WsData, CustomWebSocket, Messages, MessageData } from "./types";
 
 // Variables
 const sockets = new Map<string, CustomWebSocket>();
@@ -12,7 +12,7 @@ function log(...message: any[]) {
 }
 
 function logError(error: any) {
-    log(chalk.redBright('The server encountered an error:'));
+    log(chalk.redBright("The server encountered an error:"));
     console.error(error);
 }
 
@@ -41,13 +41,13 @@ function handleOpen(ws: CustomWebSocket) {
     }
 
     sendToRoom(room, {
-        type: 'announcement',
-        content: `${username} has joined the room!`
+        type: "announcement",
+        content: `${username} has joined the room!`,
     });
 
     sendToClient(ws, {
-        type: 'keyinit',
-        keys: Object.fromEntries(roomClientKeys.get(room)!)
+        type: "keyinit",
+        keys: Object.fromEntries(roomClientKeys.get(room)!),
     });
 
     log(`${username} joined room "${room}"`);
@@ -69,8 +69,8 @@ function handleClose(ws: CustomWebSocket) {
     }
 
     sendToRoom(room, {
-        type: 'announcement',
-        content: `${username} has left the room!`
+        type: "announcement",
+        content: `${username} has left the room!`,
     });
 
     log(`${username} left room "${room}"`);
@@ -81,26 +81,25 @@ function getMessageLength(encrypted: string) {
 }
 
 function handleUserMessage(data: WsData, messages: Messages) {
-    for (const [ targetUuid, message ] of Object.entries(messages)) {
-        if (typeof targetUuid !== 'string' ||
-            typeof message !== 'object' || message === null) continue;
+    for (const [targetUuid, message] of Object.entries(messages)) {
+        if (typeof targetUuid !== "string" ||
+            typeof message !== "object" || message === null) continue;
 
         const ws = sockets.get(targetUuid);
         if (!ws) continue;
 
         const { content, iv } = message;
-        if (typeof content !== 'string' ||
-            typeof iv !== 'string') continue;
+        if (typeof content !== "string" || typeof iv !== "string") continue;
 
         const length = getMessageLength(content);
         if (length === 0 || length > 256) continue;
 
         sendToClient(ws, {
-            type: 'message',
+            type: "message",
             sender: data.username,
             uuid: data.uuid,
             content,
-            iv
+            iv,
         });
     }
 
@@ -114,14 +113,14 @@ function handleExchange(data: WsData, key: string) {
     keys.set(data.uuid, key);
 
     sendToRoom(data.room, {
-        type: 'exchange',
+        type: "exchange",
         uuid: data.uuid,
-        key
+        key,
     });
 }
 
 function isMessageData(data: unknown): data is MessageData {
-    return typeof data === 'object' && data !== null && 'type' in data;
+    return typeof data === "object" && data !== null && "type" in data;
 }
 
 function handleMessage(ws: CustomWebSocket, received: string) {
@@ -135,13 +134,13 @@ function handleMessage(ws: CustomWebSocket, received: string) {
     if (!isMessageData(data)) return;
 
     switch (data.type) {
-        case 'send_message':
-            if (typeof data.messages === 'object' && data.messages !== null) {
+        case "send_message":
+            if (typeof data.messages === "object" && data.messages !== null) {
                 handleUserMessage(ws.data, data.messages);
             }
             break;
-        case 'send_exchange':
-            if (typeof data.key === 'string') {
+        case "send_exchange":
+            if (typeof data.key === "string") {
                 handleExchange(ws.data, data.key);
             }
             break;
@@ -152,47 +151,52 @@ function handleMessage(ws: CustomWebSocket, received: string) {
 
 // Routing
 function upgradeSocket(request: Request, searchParams: URLSearchParams) {
-    const username = searchParams.get('username') || 'Anonymous';
-    const room = searchParams.get('room');
+    const username = searchParams.get("username") || "Anonymous";
+    const room = searchParams.get("room");
 
     if (username.length > 16 || !room || room.length > 32) {
-        return new Response(null, { status: 400 });
+        return new Response("Invalid data sent", { status: 400 });
     }
 
     const data: WsData = {
         uuid: crypto.randomUUID(),
         username,
-        room
-    }
+        room,
+    };
 
     if (!server.upgrade(request, { data })) {
-        return new Response('Upgrade failed', { status: 500 });
+        return new Response("Upgrade failed", { status: 500 });
     }
 }
 
 async function handleFetch(request: Request) {
-    const { pathname, searchParams } = new URL(request.url);
+    const { pathname: pathName, searchParams } = new URL(request.url);
 
-    switch (pathname) {
-        case '/':
-            return new Response(Bun.file('./src/client/index.html'));
-        case '/chat':
-            return new Response(Bun.file('./src/client/chat.html'));
-        case '/socket':
+    switch (pathName) {
+        case "/":
+            return new Response(Bun.file("./src/client/index.html"));
+        case "/chat":
+            return new Response(Bun.file("./src/client/chat.html"));
+        case "/socket":
             return upgradeSocket(request, searchParams);
         default:
-            const file = await getFile('./src/client' + pathname);
+            const file = await getFile("./src/client" + pathName);
             return new Response(file, file ? undefined : { status: 404 });
     }
 }
 
 function handleError(error: ErrorLike) {
     logError(error);
-    return new Response(`The server encountered an error! "${error}"`, { status: 500 });
+    return new Response(`The server encountered an error! "${error}"`, {
+        status: 500,
+    });
 }
 
 function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
-    return function(this: any, ...args: Parameters<T>): ReturnType<T> | undefined {
+    return function (
+        this: any,
+        ...args: Parameters<T>
+    ): ReturnType<T> | undefined {
         try {
             return callback.apply(this, args);
         } catch (error) {
@@ -209,13 +213,13 @@ const server = Bun.serve({
     websocket: {
         open: wrapInErrorHandler(handleOpen),
         close: wrapInErrorHandler(handleClose),
-        message: wrapInErrorHandler(handleMessage)
+        message: wrapInErrorHandler(handleMessage),
     },
     tls: {
-        cert: await getFile('./certs/' + Bun.env.CERT ?? 'cert.pem'),
-        key: await getFile('./certs/' + Bun.env.KEY ?? 'key.pem'),
+        cert: await getFile("./certs/" + Bun.env.CERT ?? "cert.pem"),
+        key: await getFile("./certs/" + Bun.env.KEY ?? "key.pem"),
         passphrase: Bun.env.PASSPHRASE,
-    }
+    },
 });
 
-console.log('Server started at ' + chalk.blueBright(server.url));
+console.log("Server started at " + chalk.blueBright(server.url));

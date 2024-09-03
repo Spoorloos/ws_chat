@@ -4,24 +4,24 @@ import type { WsData, CustomWebSocket, Message, Messages, MessageData, SafeCallR
 // Variables
 const sockets = new Map<string, CustomWebSocket>();
 const roomClientKeys = new Map<string, Map<string, string>>();
-const textColors = {
-    gray: [ "\u001b[90m", "\u001b[39m" ],
-    red: [ "\u001b[91m", "\u001b[39m" ],
-    blue: [ "\u001b[94m", "\u001b[39m" ]
+
+enum Colors {
+    Gray = 90,
+    Red = 91,
+    Blue = 94
 }
 
 // Functions
-function colorText(color: keyof typeof textColors, text: any) {
-    const [ prefix, suffix ] = textColors[color];
-    return prefix + text + suffix;
+function colorText(color: Colors, text: any) {
+    return `\u001b[${color}m${text}\u001b[39m`;
 }
 
 function log(...message: any[]) {
-    console.log(colorText("gray", new Date().toLocaleTimeString()), ...message);
+    console.log(colorText(Colors.Gray, new Date().toLocaleTimeString()), ...message);
 }
 
 function logError(error: any) {
-    log(colorText("red", "The server encountered an error:"));
+    log(colorText(Colors.Red, "The server encountered an error:"));
     console.error(error);
 }
 
@@ -239,4 +239,4 @@ const server = Bun.serve({
     },
 });
 
-console.log("Server started at " + colorText("blue", server.url));
+console.log("Server started at " + colorText(Colors.Blue, server.url));

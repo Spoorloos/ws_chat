@@ -59,11 +59,6 @@ function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
     } as T;
 }
 
-const test = {
-    [""]: null
-}
-
-
 // Websocket
 function handleOpen(ws: CustomWebSocket) {
     const { username, room, uuid } = ws.data;

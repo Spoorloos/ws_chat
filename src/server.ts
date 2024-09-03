@@ -12,8 +12,8 @@ enum Colors {
 }
 
 // Functions
-function colorText(color: Colors, text: any) {
-    return `\u001b[${color}m${text}\u001b[39m`;
+function colorText(color: Colors, ...text: any[]) {
+    return `\u001b[${color}m${text.join(" ")}\u001b[0m`;
 }
 
 function log(...message: any[]) {
@@ -153,13 +153,15 @@ function handleExchange(data: WsData, key: string) {
 }
 
 function isMessageData(data: unknown): data is MessageData {
-    return typeof data === "object" && data !== null && "type" in data;
+    return data !== null &&
+        typeof data === "object" &&
+        typeof (data as any).type === "string";
 }
 
 function handleMessage(ws: CustomWebSocket, received: string) {
     const [ success, data ] = safeCall(JSON.parse, received);
     if (!success || !isMessageData(data)) {
-        ws.close(1011);
+        ws.terminate();
         return;
     }
 
@@ -175,7 +177,7 @@ function handleMessage(ws: CustomWebSocket, received: string) {
             }
             break;
         default:
-            ws.close(1011);
+            ws.terminate();
     }
 }
 
@@ -192,7 +194,7 @@ function upgradeSocket(request: Request, searchParams: URLSearchParams) {
         uuid: crypto.randomUUID(),
         username,
         room,
-    };
+    }
 
     if (!server.upgrade(request, { data })) {
         return new Response("Upgrade failed", { status: 500 });

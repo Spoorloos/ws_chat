@@ -51,10 +51,11 @@ function safeCall<T extends (...args: any[]) => any>(
 
 function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
     return function(...args: Parameters<T>): ReturnType<T> | undefined {
-        try {
-            return callback.apply(this, args);
-        } catch (error) {
-            logError(error);
+        const [ success, returned ] = safeCall(callback, ...args);
+        if (success) {
+            return returned;
+        } else {
+            logError(returned);
         }
     } as T;
 }
@@ -113,8 +114,8 @@ function getMessageLength(encrypted: string) {
 function isMessage(message: unknown): message is Message {
     return message !== null &&
         typeof message === "object" &&
-        typeof (message as any).content === "string" &&
-        typeof (message as any).iv === "string";
+        typeof (message as Message).content === "string" &&
+        typeof (message as Message).iv === "string";
 }
 
 function handleUserMessage(data: WsData, messages: Messages) {
@@ -155,7 +156,7 @@ function handleExchange(data: WsData, key: string) {
 function isMessageData(data: unknown): data is MessageData {
     return data !== null &&
         typeof data === "object" &&
-        typeof (data as any).type === "string";
+        typeof (data as MessageData).type === "string";
 }
 
 function handleMessage(ws: CustomWebSocket, received: string) {

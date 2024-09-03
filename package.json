@@ -2,15 +2,12 @@
     "name": "wschat",
     "module": "./src/server.ts",
     "type": "module",
-    "scripts": {
-        "start": "bun run ./build.js && bun run ./src/server.ts"
-    },
     "repository": {
         "type": "git",
         "url": "https://github.com/Spoorloos/ws_chat"
     },
-    "dependencies": {
-        "chalk": "^5.3.0"
+    "scripts": {
+        "start": "bun run ./build.js && bun run ./src/server.ts"
     },
     "devDependencies": {
         "@types/bun": "latest"

@@ -1,18 +1,27 @@
-import chalk from "chalk";
 import type { ErrorLike } from "bun";
-import type { WsData, CustomWebSocket, Messages, MessageData } from "./types";
+import type { WsData, CustomWebSocket, Message, Messages, MessageData, SafeCallResult } from "./types";
 
 // Variables
 const sockets = new Map<string, CustomWebSocket>();
 const roomClientKeys = new Map<string, Map<string, string>>();
+const textColors = {
+    gray: [ "\u001b[90m", "\u001b[39m" ],
+    red: [ "\u001b[91m", "\u001b[39m" ],
+    blue: [ "\u001b[94m", "\u001b[39m" ]
+}
 
 // Functions
+function colorText(color: keyof typeof textColors, text: any) {
+    const [ prefix, suffix ] = textColors[color];
+    return prefix + text + suffix;
+}
+
 function log(...message: any[]) {
-    console.log(chalk.gray(new Date().toLocaleTimeString()), ...message);
+    console.log(colorText("gray", new Date().toLocaleTimeString()), ...message);
 }
 
 function logError(error: any) {
-    log(chalk.redBright("The server encountered an error:"));
+    log(colorText("red", "The server encountered an error:"));
     console.error(error);
 }
 
@@ -24,14 +33,40 @@ function sendToClient(client: CustomWebSocket, data: MessageData) {
     client.send(JSON.stringify(data));
 }
 
-async function getFile(path: string) {
+async function loadFileIfExists(path: string) {
     const file = Bun.file(path);
     return (await file.exists()) ? file : undefined;
 }
 
+function safeCall<T extends (...args: any[]) => any>(
+    callback: T,
+    ...args: Parameters<T>
+): SafeCallResult<ReturnType<T>> {
+    try {
+        return [ true, callback.apply(this, args) ];
+    } catch (error) {
+        return [ false, error ];
+    }
+}
+
+function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
+    return function(...args: Parameters<T>): ReturnType<T> | undefined {
+        try {
+            return callback.apply(this, args);
+        } catch (error) {
+            logError(error);
+        }
+    } as T;
+}
+
+const test = {
+    [""]: null
+}
+
+
 // Websocket
 function handleOpen(ws: CustomWebSocket) {
-    let { username, room, uuid } = ws.data;
+    const { username, room, uuid } = ws.data;
 
     ws.subscribe(room);
     sockets.set(uuid, ws);
@@ -80,26 +115,29 @@ function getMessageLength(encrypted: string) {
     return atob(encrypted).length - 16;
 }
 
+function isMessage(message: unknown): message is Message {
+    return message !== null &&
+        typeof message === "object" &&
+        typeof (message as any).content === "string" &&
+        typeof (message as any).iv === "string";
+}
+
 function handleUserMessage(data: WsData, messages: Messages) {
-    for (const [targetUuid, message] of Object.entries(messages)) {
-        if (typeof targetUuid !== "string" ||
-            typeof message !== "object" || message === null) continue;
+    for (const [ targetUuid, message ] of Object.entries(messages)) {
+        if (typeof targetUuid !== "string" || !isMessage(message)) continue;
 
         const ws = sockets.get(targetUuid);
         if (!ws) continue;
 
-        const { content, iv } = message;
-        if (typeof content !== "string" || typeof iv !== "string") continue;
-
-        const length = getMessageLength(content);
+        const length = getMessageLength(message.content);
         if (length === 0 || length > 256) continue;
 
         sendToClient(ws, {
             type: "message",
             sender: data.username,
             uuid: data.uuid,
-            content,
-            iv,
+            content: message.content,
+            iv: message.iv,
         });
     }
 
@@ -124,14 +162,11 @@ function isMessageData(data: unknown): data is MessageData {
 }
 
 function handleMessage(ws: CustomWebSocket, received: string) {
-    try {
-        var data: unknown = JSON.parse(received);
-    } catch {
+    const [ success, data ] = safeCall(JSON.parse, received);
+    if (!success || !isMessageData(data)) {
         ws.close(1011);
         return;
     }
-
-    if (!isMessageData(data)) return;
 
     switch (data.type) {
         case "send_message":
@@ -180,7 +215,7 @@ async function handleFetch(request: Request) {
         case "/socket":
             return upgradeSocket(request, searchParams);
         default:
-            const file = await getFile("./src/client" + pathName);
+            const file = await loadFileIfExists("./src/client" + pathName);
             return new Response(file, file ? undefined : { status: 404 });
     }
 }
@@ -190,19 +225,6 @@ function handleError(error: ErrorLike) {
     return new Response(`The server encountered an error! "${error}"`, {
         status: 500,
     });
-}
-
-function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
-    return function (
-        this: any,
-        ...args: Parameters<T>
-    ): ReturnType<T> | undefined {
-        try {
-            return callback.apply(this, args);
-        } catch (error) {
-            logError(error);
-        }
-    } as T;
 }
 
 // Setup server
@@ -216,10 +238,10 @@ const server = Bun.serve({
         message: wrapInErrorHandler(handleMessage),
     },
     tls: {
-        cert: await getFile("./certs/" + Bun.env.CERT ?? "cert.pem"),
-        key: await getFile("./certs/" + Bun.env.KEY ?? "key.pem"),
+        cert: await loadFileIfExists("./certs/" + Bun.env.CERT ?? "cert.pem"),
+        key: await loadFileIfExists("./certs/" + Bun.env.KEY ?? "key.pem"),
         passphrase: Bun.env.PASSPHRASE,
     },
 });
 
-console.log("Server started at " + chalk.blueBright(server.url));
+console.log("Server started at " + colorText("blue", server.url));

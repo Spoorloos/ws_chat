@@ -6,9 +6,7 @@ type WsData = {
     room: string;
 }
 
-type CustomWebSocket = ServerWebSocket<unknown> & {
-    data: WsData;
-}
+type CustomWebSocket = ServerWebSocket<WsData>
 
 type Message = {
     content: string;
@@ -65,3 +63,7 @@ type MessageData =
     | SendExchangeCaseData
     | AnnouncementCaseData
     | KeyInitCaseData;
+
+type SafeCallResult<T> =
+    | [ success: true, returned: T ]
+    | [ success: false, error: any ];

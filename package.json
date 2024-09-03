@@ -3,7 +3,7 @@
     "module": "./src/server.ts",
     "type": "module",
     "scripts": {
-        "start": "bun run ./build.ts && bun run ./src/server.ts"
+        "start": "bun run ./build.js && bun run ./src/server.ts"
     },
     "repository": {
         "type": "git",

@@ -166,7 +166,7 @@ webSocket.addEventListener("message", function(event) {
 
 webSocket.addEventListener("close", function() {
     createAnnouncement("Your connection to the server was terminated.", true);
-})
+});
 
 webSocket.addEventListener("error", function() {
     createAnnouncement("There was an error related to the server. Attempting to reconnect in 2 seconds...", true);

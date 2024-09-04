@@ -126,7 +126,7 @@ function handleUserMessage(data: WsData, messages: Messages) {
         if (!ws) continue;
 
         const length = getMessageLength(message.content);
-        if (length === 0 || length > 256) continue;
+        if (length <= 0 || length > 256) continue;
 
         sendToClient(ws, {
             type: "message",
@@ -239,7 +239,7 @@ const server = Bun.serve({
         cert: await loadFileIfExists("./certs/" + Bun.env.CERT ?? "cert.pem"),
         key: await loadFileIfExists("./certs/" + Bun.env.KEY ?? "key.pem"),
         passphrase: Bun.env.PASSPHRASE,
-    },
+    }
 });
 
 console.log("Server started at " + colorText(Colors.Blue, server.url));

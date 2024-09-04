@@ -50,14 +50,13 @@ function safeCall<T extends (...args: any[]) => any>(
 }
 
 function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
-    return function(...args: Parameters<T>): ReturnType<T> | undefined {
-        const [ success, returned ] = safeCall(callback, ...args);
-        if (success) {
-            return returned;
-        } else {
-            logError(returned);
+    return (function(...args: Parameters<T>): ReturnType<T> | undefined {
+        try {
+            return callback.apply(this, args);
+        } catch (error) {
+            logError(error);
         }
-    } as T;
+    }).bind(this);
 }
 
 // Websocket

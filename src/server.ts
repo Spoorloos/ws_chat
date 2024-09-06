@@ -213,7 +213,7 @@ async function handleFetch(request: Request) {
             return upgradeSocket(request, searchParams);
         default:
             const file = await loadFileIfExists("./src/client" + pathName);
-            return new Response(file, file && { status: 404 });
+            return new Response(file, file ? undefined : { status: 404 });
     }
 }
 

@@ -1,8 +1,8 @@
 import type { ErrorLike } from "bun";
-import type { WsData, CustomWebSocket, Message, Messages, MessageData, SafeCallResult } from "./types";
+import type { WSData, WSServer, Message, Messages, MessageData, SafeCallResult } from "./types";
 
 // Variables
-const sockets = new Map<string, CustomWebSocket>();
+const sockets = new Map<string, WSServer>();
 const roomClientKeys = new Map<string, Map<string, string>>();
 
 enum Colors {
@@ -29,7 +29,7 @@ function sendToRoom(room: string, data: MessageData) {
     server.publish(room, JSON.stringify(data));
 }
 
-function sendToClient(client: CustomWebSocket, data: MessageData) {
+function sendToClient(client: WSServer, data: MessageData) {
     client.send(JSON.stringify(data));
 }
 
@@ -60,7 +60,7 @@ function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
 }
 
 // Websocket
-function handleOpen(ws: CustomWebSocket) {
+function handleOpen(ws: WSServer) {
     const { username, room, uuid } = ws.data;
 
     ws.subscribe(room);
@@ -83,7 +83,7 @@ function handleOpen(ws: CustomWebSocket) {
     log(`${username} joined room "${room}"`);
 }
 
-function handleClose(ws: CustomWebSocket) {
+function handleClose(ws: WSServer) {
     const { username, room, uuid } = ws.data;
 
     ws.unsubscribe(room);
@@ -111,13 +111,13 @@ function getMessageLength(encrypted: string) {
 }
 
 function isMessage(message: unknown): message is Message {
-    return message !== null &&
-        typeof message === "object" &&
-        typeof (message as Message).content === "string" &&
-        typeof (message as Message).iv === "string";
+    return message !== null
+        && typeof message === "object"
+        && typeof (message as Message).content === "string"
+        && typeof (message as Message).iv === "string";
 }
 
-function handleUserMessage(data: WsData, messages: Messages) {
+function handleUserMessage(data: WSData, messages: Messages) {
     for (const [ targetUuid, message ] of Object.entries(messages)) {
         if (typeof targetUuid !== "string" || !isMessage(message)) continue;
 
@@ -139,7 +139,7 @@ function handleUserMessage(data: WsData, messages: Messages) {
     log(`${data.username} sent a message in room "${data.room}"`);
 }
 
-function handleExchange(data: WsData, key: string) {
+function handleExchange(data: WSData, key: string) {
     const keys = roomClientKeys.get(data.room);
     if (!keys || keys.has(data.uuid)) return;
 
@@ -153,12 +153,12 @@ function handleExchange(data: WsData, key: string) {
 }
 
 function isMessageData(data: unknown): data is MessageData {
-    return data !== null &&
-        typeof data === "object" &&
-        typeof (data as MessageData).type === "string";
+    return data !== null
+        && typeof data === "object"
+        && typeof (data as MessageData).type === "string";
 }
 
-function handleMessage(ws: CustomWebSocket, received: string) {
+function handleMessage(ws: WSServer, received: string) {
     const [ success, data ] = safeCall(JSON.parse, received);
     if (!success || !isMessageData(data)) {
         ws.terminate();
@@ -190,10 +190,10 @@ function upgradeSocket(request: Request, searchParams: URLSearchParams) {
         return new Response("Invalid data sent", { status: 400 });
     }
 
-    const data: WsData = {
+    const data: WSData = {
         uuid: crypto.randomUUID(),
         username,
-        room,
+        room
     }
 
     if (!server.upgrade(request, { data })) {
@@ -213,14 +213,14 @@ async function handleFetch(request: Request) {
             return upgradeSocket(request, searchParams);
         default:
             const file = await loadFileIfExists("./src/client" + pathName);
-            return new Response(file, file ? undefined : { status: 404 });
+            return new Response(file, file && { status: 404 });
     }
 }
 
 function handleError(error: ErrorLike) {
     logError(error);
-    return new Response(`The server encountered an error! "${error}"`, {
-        status: 500,
+    return new Response(`The server encountered an error:\n"${error}"`, {
+        status: 500
     });
 }
 
@@ -237,7 +237,7 @@ const server = Bun.serve({
     tls: {
         cert: await loadFileIfExists("./certs/" + Bun.env.CERT ?? "cert.pem"),
         key: await loadFileIfExists("./certs/" + Bun.env.KEY ?? "key.pem"),
-        passphrase: Bun.env.PASSPHRASE,
+        passphrase: Bun.env.PASSPHRASE
     }
 });
 

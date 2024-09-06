@@ -1,12 +1,12 @@
 import type { ServerWebSocket } from "bun";
 
-type WsData = {
+type WSData = Readonly<{
     uuid: string;
     username: string;
     room: string;
-}
+}>
 
-type CustomWebSocket = ServerWebSocket<WsData>
+type WSServer = ServerWebSocket<WSData>;
 
 type Message = {
     content: string;
@@ -64,6 +64,7 @@ type MessageData =
     | AnnouncementCaseData
     | KeyInitCaseData;
 
-type SafeCallResult<T> =
+type SafeCallResult<T> = Readonly<
     | [ success: true, returned: T ]
-    | [ success: false, error: any ];
+    | [ success: false, error: any ]
+>

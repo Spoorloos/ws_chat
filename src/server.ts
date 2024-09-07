@@ -39,6 +39,7 @@ async function loadFileIfExists(path: string) {
 }
 
 function safeCall<T extends (...args: any[]) => any>(
+    this: any,
     callback: T,
     ...args: Parameters<T>
 ): SafeCallResult<ReturnType<T>> {
@@ -49,14 +50,14 @@ function safeCall<T extends (...args: any[]) => any>(
     }
 }
 
-function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T): T {
-    return function(...args: Parameters<T>): ReturnType<T> | undefined {
+function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T) {
+    return function(this: any, ...args: Parameters<T>): ReturnType<T> | undefined {
         try {
             return callback.apply(this, args);
         } catch (error) {
             logError(error);
         }
-    }.bind(this);
+    }
 }
 
 // Websocket
@@ -240,5 +241,7 @@ const server = Bun.serve({
         passphrase: Bun.env.PASSPHRASE
     }
 });
+
+
 
 console.log("Server started at " + colorText(Colors.Blue, server.url));

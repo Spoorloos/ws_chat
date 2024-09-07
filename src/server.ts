@@ -20,9 +20,9 @@ function log(...message: any[]) {
     console.log(colorText(Colors.Gray, new Date().toLocaleTimeString()), ...message);
 }
 
-function logError(error: any) {
+function logError(...error: any[]) {
     log(colorText(Colors.Red, "The server encountered an error:"));
-    console.error(error);
+    console.error(...error);
 }
 
 function sendToRoom(room: string, data: MessageData) {
@@ -241,7 +241,5 @@ const server = Bun.serve({
         passphrase: Bun.env.PASSPHRASE
     }
 });
-
-
 
 console.log("Server started at " + colorText(Colors.Blue, server.url));

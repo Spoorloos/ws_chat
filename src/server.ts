@@ -1,5 +1,5 @@
 import type { ErrorLike } from "bun";
-import type { WSData, WSServer, Message, Messages, MessageData, SafeCallResult } from "./types";
+import type { WSData, WSServer, Message, MessageData, SafeCallResult } from "./types";
 
 // Variables
 const sockets = new Map<string, WSServer>();
@@ -12,8 +12,8 @@ enum Colors {
 }
 
 // Functions
-function colorText(color: Colors, ...text: any[]) {
-    return `\u001b[${color}m${text.join(" ")}\u001b[0m`;
+function colorText<T extends Colors>(color: T, ...value: [ any, ...any[] ]) {
+    return `\u001b[${color}m${value.join(" ")}\u001b[0m` as const;
 }
 
 function log(...message: any[]) {
@@ -118,9 +118,9 @@ function isMessage(message: unknown): message is Message {
         && typeof (message as Message).iv === "string";
 }
 
-function handleUserMessage(data: WSData, messages: Messages) {
+function handleUserMessage(data: WSData, messages: Object) {
     for (const [ targetUuid, message ] of Object.entries(messages)) {
-        if (typeof targetUuid !== "string" || !isMessage(message)) continue;
+        if (!isMessage(message)) continue;
 
         const ws = sockets.get(targetUuid);
         if (!ws) continue;
@@ -194,7 +194,7 @@ function upgradeSocket(request: Request, searchParams: URLSearchParams) {
     const data: WSData = {
         uuid: crypto.randomUUID(),
         username,
-        room
+        room,
     }
 
     if (!server.upgrade(request, { data })) {
@@ -221,7 +221,7 @@ async function handleFetch(request: Request) {
 function handleError(error: ErrorLike) {
     logError(error);
     return new Response(`The server encountered an error:\n"${error}"`, {
-        status: 500
+        status: 500,
     });
 }
 
@@ -234,12 +234,14 @@ const server = Bun.serve({
         open: wrapInErrorHandler(handleOpen),
         close: wrapInErrorHandler(handleClose),
         message: wrapInErrorHandler(handleMessage),
+        perMessageDeflate: true,
+        maxPayloadLength: 1024,
     },
     tls: {
         cert: await loadFileIfExists("./certs/" + Bun.env.CERT ?? "cert.pem"),
         key: await loadFileIfExists("./certs/" + Bun.env.KEY ?? "key.pem"),
-        passphrase: Bun.env.PASSPHRASE
-    }
+        passphrase: Bun.env.PASSPHRASE,
+    },
 });
 
 console.log("Server started at " + colorText(Colors.Blue, server.url));

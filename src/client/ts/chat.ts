@@ -62,7 +62,7 @@ async function importPublicKey(keyData: string) {
 async function deriveSharedSecret(privateKey: CryptoKey, publicKey: CryptoKey) {
     return crypto.subtle.deriveKey({
         name: "ECDH",
-        public: publicKey
+        public: publicKey,
     }, privateKey, {
         name: "AES-GCM",
         length: 256,
@@ -78,14 +78,14 @@ async function encryptMessage(key: CryptoKey, message: string) {
     }, key, encodedMessage);
     return {
         content: bufferToBase64(encrypted),
-        iv: bufferToBase64(iv)
+        iv: bufferToBase64(iv),
     } as Message
 }
 
 async function decryptMessage(key: CryptoKey, encryptedMessage: string, iv: string) {
     const decrypted = await crypto.subtle.decrypt({
         name: "AES-GCM",
-        iv: base64ToBuffer(iv)
+        iv: base64ToBuffer(iv),
     }, key, base64ToBuffer(encryptedMessage));
     return new TextDecoder().decode(decrypted);
 }
@@ -141,7 +141,7 @@ webSocket.addEventListener("open", async function() {
 
     sendToServer({
         type: "send_exchange",
-        key: await exportPublicKey(publicKey)
+        key: await exportPublicKey(publicKey),
     });
 });
 
@@ -181,8 +181,8 @@ messageInput.addEventListener("input", function() {
 form.addEventListener("submit", async function(event) {
     event.preventDefault();
 
-    const messages: Messages = {};
     const message = messageInput.value.trim();
+    const messages: Messages = Object.create(null);
 
     messageInput.value = "";
     sendBtn.disabled = true;
@@ -193,6 +193,6 @@ form.addEventListener("submit", async function(event) {
 
     sendToServer({
         type: "send_message",
-        messages
+        messages,
     });
 });

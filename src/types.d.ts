@@ -1,12 +1,14 @@
 import type { ServerWebSocket } from "bun";
 
+type WSServer = ServerWebSocket<WSData>;
+type OneOrMore<T = unknown> = [ T, ...T[] ];
+type AnyFunction = (...args: any[]) => any;
+
 type WSData = Readonly<{
     uuid: string;
     username: string;
     room: string;
 }>
-
-type WSServer = ServerWebSocket<WSData>;
 
 type Message = {
     content: string;
@@ -68,5 +70,3 @@ type SafeCallResult<T> = Readonly<
     | [ success: true, returned: T ]
     | [ success: false, error: any ]
 >
-
-type OneOrMore<T = unknown> = [ T, ...T[] ];

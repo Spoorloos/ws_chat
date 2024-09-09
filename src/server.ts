@@ -1,5 +1,5 @@
 import type { ErrorLike } from "bun";
-import type { WSData, WSServer, Message, MessageData, SafeCallResult, OneOrMore } from "./types";
+import type { WSData, WSServer, Message, MessageData, SafeCallResult, OneOrMore, AnyFunction } from "./types";
 
 // Variables
 const sockets = new Map<string, WSServer>();
@@ -38,8 +38,8 @@ async function loadFileIfExists(path: string) {
     return (await file.exists()) ? file : undefined;
 }
 
-function safeCall<T extends (...args: any[]) => any>(
-    this: any,
+function safeCall<T extends AnyFunction>(
+    this: unknown,
     callback: T,
     ...args: Parameters<T>
 ): SafeCallResult<ReturnType<T>> {
@@ -50,8 +50,11 @@ function safeCall<T extends (...args: any[]) => any>(
     }
 }
 
-function wrapInErrorHandler<T extends (...args: any[]) => any>(callback: T) {
-    return function(this: any, ...args: Parameters<T>): ReturnType<T> | undefined {
+function wrapInErrorHandler<T extends AnyFunction>(callback: T) {
+    return function(
+        this: unknown,
+        ...args: Parameters<T>
+    ): ReturnType<T> | undefined {
         try {
             return callback.apply(this, args);
         } catch (error) {
@@ -207,7 +210,7 @@ async function handleFetch(request: Request) {
 
     switch (pathName) {
         case "/":
-            return new Response(Bun.file("./src/client/index.html"));
+            return new Response(Bun.file("./src/client/login.html"));
         case "/chat":
             return new Response(Bun.file("./src/client/chat.html"));
         case "/socket":

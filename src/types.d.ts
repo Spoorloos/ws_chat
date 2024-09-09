@@ -68,3 +68,5 @@ type SafeCallResult<T> = Readonly<
     | [ success: true, returned: T ]
     | [ success: false, error: any ]
 >
+
+type OneOrMore<T = unknown> = [ T, ...T[] ];

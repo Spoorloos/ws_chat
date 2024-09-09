@@ -1,5 +1,5 @@
 import type { ErrorLike } from "bun";
-import type { WSData, WSServer, Message, MessageData, SafeCallResult } from "./types";
+import type { WSData, WSServer, Message, MessageData, SafeCallResult, OneOrMore } from "./types";
 
 // Variables
 const sockets = new Map<string, WSServer>();
@@ -12,15 +12,15 @@ enum Colors {
 }
 
 // Functions
-function colorText<T extends Colors>(color: T, ...value: [ any, ...any[] ]) {
+function colorText<T extends Colors>(color: T, ...value: OneOrMore) {
     return `\u001b[${color}m${value.join(" ")}\u001b[0m` as const;
 }
 
-function log(...message: any[]) {
+function log(...message: OneOrMore) {
     console.log(colorText(Colors.Gray, new Date().toLocaleTimeString()), ...message);
 }
 
-function logError(...error: any[]) {
+function logError(...error: OneOrMore) {
     log(colorText(Colors.Red, "The server encountered an error:"));
     console.error(...error);
 }

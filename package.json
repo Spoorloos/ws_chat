@@ -7,7 +7,8 @@
         "url": "https://github.com/Spoorloos/ws_chat"
     },
     "scripts": {
-        "start": "bun run ./build.js && sass --no-source-map --style compressed ./src/client/scss/:./build/ && bun run ./src/server.ts"
+        "build": "bun run ./build.js && sass --no-source-map --style compressed ./src/client/scss/:./build/",
+        "start": "bun run --silent build && bun run ./src/server.ts"
     },
     "devDependencies": {
         "@types/bun": "latest"

@@ -1,9 +1,9 @@
 import type { ErrorLike } from "bun";
-import type { WSData, WSServer, Message, MessageData, SafeCallResult, OneOrMore, AnyFunction } from "./types";
+import type { WSData, WSServer, User, Message, MessageData, SafeCallResult, OneOrMore, AnyFunction } from "./types";
 
 // Variables
 const sockets = new Map<string, WSServer>();
-const roomClientKeys = new Map<string, Map<string, string>>();
+const rooms = new Map<string, Map<string, User>>();
 
 enum Colors {
     Gray = 90,
@@ -65,49 +65,52 @@ function wrapInErrorHandler<T extends AnyFunction>(callback: T) {
 
 // Websocket
 function handleOpen(ws: WSServer) {
-    const { username, room, uuid } = ws.data;
+    const { userID, userName, roomName } = ws.data;
 
-    ws.subscribe(room);
-    sockets.set(uuid, ws);
+    ws.subscribe(roomName);
+    sockets.set(userID, ws);
 
-    if (!roomClientKeys.has(room)) {
-        roomClientKeys.set(room, new Map());
+    let room = rooms.get(roomName);
+    if (!room) {
+        rooms.set(roomName, room = new Map());
     }
-
-    sendToRoom(room, {
-        type: "announcement",
-        content: `${username} has joined the room!`,
-    });
 
     sendToClient(ws, {
         type: "keyinit",
-        keys: Object.fromEntries(roomClientKeys.get(room)!),
+        keys: Object.fromEntries(
+            [ ...room.entries() ].map((v) => [ v[0], v[1].key ])
+        ),
     });
 
-    log(`${username} joined room "${room}"`);
+    sendToRoom(roomName, {
+        type: "announcement",
+        content: `${userName} has joined the room!`,
+    });
+
+    log(`${userName} joined room "${roomName}"`);
 }
 
 function handleClose(ws: WSServer) {
-    const { username, room, uuid } = ws.data;
+    const { userID, userName, roomName } = ws.data;
 
-    ws.unsubscribe(room);
-    sockets.delete(uuid);
+    ws.unsubscribe(roomName);
+    sockets.delete(userID);
 
-    const keys = roomClientKeys.get(room);
-    if (keys) {
-        keys.delete(uuid);
+    const users = rooms.get(roomName);
+    if (users) {
+        users.delete(userID);
 
-        if (keys.size === 0) {
-            roomClientKeys.delete(room);
+        if (users.size === 0) {
+            rooms.delete(roomName);
         }
     }
 
-    sendToRoom(room, {
+    sendToRoom(roomName, {
         type: "announcement",
-        content: `${username} has left the room!`,
+        content: `${userName} has left the room!`,
     });
 
-    log(`${username} left room "${room}"`);
+    log(`${userName} left room "${roomName}"`);
 }
 
 function getMessageLength(encrypted: string) {
@@ -122,10 +125,10 @@ function isMessage(message: unknown): message is Message {
 }
 
 function handleUserMessage(data: WSData, messages: Object) {
-    for (const [ targetUuid, message ] of Object.entries(messages)) {
+    for (const [ targetID, message ] of Object.entries(messages)) {
         if (!isMessage(message)) continue;
 
-        const ws = sockets.get(targetUuid);
+        const ws = sockets.get(targetID);
         if (!ws) continue;
 
         const length = getMessageLength(message.content);
@@ -133,25 +136,28 @@ function handleUserMessage(data: WSData, messages: Object) {
 
         sendToClient(ws, {
             type: "message",
-            sender: data.username,
-            uuid: data.uuid,
+            sender: data.userName,
+            uuid: data.userID,
             content: message.content,
             iv: message.iv,
         });
     }
 
-    log(`${data.username} sent a message in room "${data.room}"`);
+    log(`${data.userName} sent a message in room "${data.roomName}"`);
 }
 
 function handleExchange(data: WSData, key: string) {
-    const keys = roomClientKeys.get(data.room);
-    if (!keys || keys.has(data.uuid)) return;
+    const users = rooms.get(data.roomName);
+    if (!users || users.has(data.userID)) return;
 
-    keys.set(data.uuid, key);
+    users.set(data.userID, {
+        name: data.userName,
+        key,
+    });
 
-    sendToRoom(data.room, {
+    sendToRoom(data.roomName, {
         type: "exchange",
-        uuid: data.uuid,
+        uuid: data.userID,
         key,
     });
 }
@@ -186,18 +192,33 @@ function handleMessage(ws: WSServer, received: string) {
 }
 
 // Routing
-function upgradeSocket(request: Request, searchParams: URLSearchParams) {
-    const username = searchParams.get("username") || "Anonymous";
-    const room = searchParams.get("room");
+function isUsernameTaken(roomName: string, userName: string) {
+    const room = rooms.get(roomName);
+    if (!room) return false;
 
-    if (username.length > 16 || !room || room.length > 32) {
+    for (const user of room.values()) {
+        if (user.name === userName) return true;
+    }
+
+    return false;
+}
+
+function upgradeSocket(request: Request, searchParams: URLSearchParams) {
+    const userName = searchParams.get("username") || "Anonymous";
+    const roomName = searchParams.get("room");
+
+    if (userName.length > 16 || !roomName || roomName.length > 32) {
         return new Response("Invalid data sent", { status: 400 });
     }
 
+    if (userName !== "Anonymous" && isUsernameTaken(roomName, userName)) {
+        return new Response("Username taken", { status: 409 });
+    }
+
     const data: WSData = {
-        uuid: crypto.randomUUID(),
-        username,
-        room,
+        userID: crypto.randomUUID(),
+        userName,
+        roomName,
     }
 
     if (!server.upgrade(request, { data })) {
@@ -216,7 +237,7 @@ async function handleFetch(request: Request) {
         case "/socket":
             return upgradeSocket(request, searchParams);
         default:
-            const file = await loadFileIfExists("./src/client" + pathName);
+            const file = await loadFileIfExists("./build" + pathName);
             return new Response(file, file ? undefined : { status: 404 });
     }
 }
@@ -247,4 +268,4 @@ const server = Bun.serve({
     },
 });
 
-console.log("Server started at " + colorText(Colors.Blue, server.url));
+console.log("Server started at " + colorText(Colors.Blue, server.url.toString()));

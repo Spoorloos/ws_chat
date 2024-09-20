@@ -7,9 +7,12 @@
         "url": "https://github.com/Spoorloos/ws_chat"
     },
     "scripts": {
-        "start": "bun run ./build.js && bun run ./src/server.ts"
+        "start": "bun run ./build.js && sass --no-source-map --style compressed ./src/client/scss/:./build/ && bun run ./src/server.ts"
     },
     "devDependencies": {
         "@types/bun": "latest"
+    },
+    "dependencies": {
+        "sass-embedded": "^1.79.2"
     }
 }

@@ -5,9 +5,9 @@ type OneOrMore<T = unknown> = [ T, ...T[] ];
 type AnyFunction = (...args: any[]) => any;
 
 type WSData = Readonly<{
-    uuid: string;
-    username: string;
-    room: string;
+    userID: string;
+    userName: string;
+    roomName: string;
 }>
 
 type Message = {
@@ -16,11 +16,16 @@ type Message = {
 }
 
 type Messages = {
-    [targetUuid: string]: Message;
+    [targetID: string]: Message;
 }
 
 type ExchangeKeys = {
-    [uuid: string]: string;
+    [userID: string]: string;
+}
+
+type User = {
+    name: string;
+    key: string;
 }
 
 // Message Data Types

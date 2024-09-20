@@ -28,7 +28,7 @@ Login Page | Chat Page
 bun install
 ```
 ```
-bun run start
+bun run dev
 ```
 
 ## Contributions

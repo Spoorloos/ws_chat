@@ -15,13 +15,8 @@ type Message = {
     iv: string;
 }
 
-type Messages = {
-    [targetID: string]: Message;
-}
-
-type ExchangeKeys = {
-    [userID: string]: string;
-}
+type Messages = Record<string, Message>;
+type ExchangeKeys = Record<string, string>;
 
 type User = {
     name: string;

@@ -15,7 +15,6 @@
         "@types/bun": "latest"
     },
     "dependencies": {
-        "html-minifier": "^4.0.0",
         "sass-embedded": "^1.79.2"
     }
 }

@@ -1,40 +1,12 @@
-$body-color: #000;
-$main-color: #0A0A0A;
-$main-border-color: #FFFFFF24;
-$main-text-color: #EEE;
-$input-border-color: #FFFFFF40;
-$join-btn-color: #DDD;
-$join-btn-hover-color: #FFF;
-$join-btn-text-color: #000;
-
-*, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-html, body {
-    height: 100%;
-}
-
-html {
-    font-size: 62.5%;
-    font-family: monospace, system-ui, sans-serif;
-}
-
-body {
-    display: flex;
-    background-color: $body-color;
-    font-size: 1.6rem;
-}
+@use "base";
 
 .main {
     min-width: 40%;
     min-height: 50%;
     margin: auto;
-    background-color: $main-color;
-    color: $main-text-color;
-    border: thin solid $main-border-color;
+    background-color: base.$main-color;
+    color: base.$main-text-color;
+    border: thin solid base.$main-border-color;
     border-radius: 2rem;
     padding: 3rem;
     display: flex;
@@ -64,8 +36,8 @@ body {
 
         &__input {
             background-color: transparent;
-            color: $main-text-color;
-            border: thin solid $input-border-color;
+            color: base.$main-text-color;
+            border: thin solid base.$input-border-color;
             font-weight: 100;
             opacity: 0.5;
             transition: opacity 0.1s ease-out;
@@ -79,13 +51,13 @@ body {
             border: none;
             cursor: pointer;
             font-weight: bold;
-            background-color: $join-btn-color;
-            color: $join-btn-text-color;
+            background-color: base.$btn-color;
+            color: base.$btn-text-color;
             transition: background-color 0.1s ease-out;
 
             &:hover,
             &:focus {
-                background-color: $join-btn-hover-color;
+                background-color: base.$btn-hover-color;
             }
         }
     }

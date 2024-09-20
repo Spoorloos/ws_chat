@@ -1,41 +1,13 @@
-$body-color: #000;
-$main-color: #0A0A0A;
-$main-border-color: #FFFFFF24;
-$main-text-color: #EEE;
-$input-border-color: #FFFFFF40;
-$send-btn-color: #DDD;
-$send-btn-hover-color: #FFF;
-$send-btn-text-color: #000;
-
-*, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-html, body {
-    height: 100%;
-}
-
-html {
-    font-size: 62.5%;
-    font-family: monospace, system-ui, sans-serif;
-}
-
-body {
-    display: flex;
-    background-color: $body-color;
-    font-size: 1.6rem;
-}
+@use "base";
 
 .main {
     width: 50%;
     height: 85%;
     min-width: 30rem;
     margin: auto;
-    background-color: $main-color;
-    color: $main-text-color;
-    border: thin solid $main-border-color;
+    background-color: base.$main-color;
+    color: base.$main-text-color;
+    border: thin solid base.$main-border-color;
     border-radius: 2rem;
     padding: 3rem;
     display: flex;
@@ -64,8 +36,8 @@ body {
         &__message {
             flex: 1 1 0;
             background-color: transparent;
-            color: $main-text-color;
-            border: thin solid $input-border-color;
+            color: base.$main-text-color;
+            border: thin solid base.$input-border-color;
             font-weight: 100;
             padding: 1rem;
             min-width: 0;
@@ -81,14 +53,14 @@ body {
             border: none;
             cursor: pointer;
             font-weight: bold;
-            background-color: $send-btn-color;
-            color: $send-btn-text-color;
+            background-color: base.$btn-color;
+            color: base.$btn-text-color;
             transition: background-color 0.1s ease-out;
             padding: 1rem 2rem;
 
             &:hover,
             &:focus {
-                background-color: $send-btn-hover-color;
+                background-color: base.$btn-hover-color;
             }
 
             &:disabled {

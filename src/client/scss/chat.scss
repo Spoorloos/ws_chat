@@ -71,18 +71,20 @@
     }
 }
 
-.message__sender {
-    font-weight: bold;
+.message {
+    &__sender {
+        font-weight: bold;
 
-    &::after {
-        content: ": ";
+        &::after {
+            content: ": ";
+        }
     }
-}
 
-.message__content {
-    display: inline;
-    text-wrap: wrap;
-    word-wrap: break-word;
+    &__content {
+        display: inline;
+        text-wrap: wrap;
+        word-wrap: break-word;
+    }
 }
 
 .announcement {
